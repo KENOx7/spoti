@@ -1,4 +1,4 @@
-// App.tsx
+// src/App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,18 +8,15 @@ import { PlayerProvider } from "@/context/player-context";
 import { LanguageProvider } from "@/context/language-context";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-// YENİ: Mobil naviqasiya üçün komponent
-import { MobileNav } from "@/components/MobileNav";
+import { MobileNav } from "@/components/MobileNav"; // Mobil naviqasiyanı import edirik
 
-// Əsas səhifələr
+// Bütün səhifələrinizi import edin
 import Index from "./pages/Index";
 import ChartView from "./pages/ChartView";
 import LikedSongsView from "./pages/LikedSongsView";
 import CollectionsView from "./pages/CollectionsView";
 import AskAIView from "./pages/AskAIView";
 import NotFound from "./pages/NotFound";
-
-// Yeni səhifələr
 import MakePlaylistView from "./pages/MakePlaylistView";
 import SettingsView from "./pages/SettingsView";
 import AccountView from "./pages/AccountView";
@@ -35,18 +32,16 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <div className="flex min-h-screen w-full bg-background text-foreground">
-              {/* Sidebar indi mobildə gizlənəcək (növbəti addıma baxın) */}
+              {/* PC Sidebar (mobildə 'hidden') */}
               <Sidebar />
-              {/* === DÜZƏLİŞ BURADADIR ===
-                Əsas məzmun sahəsi:
-                - 'md:ml-60': Yalnız böyük ekranlarda soldan boşluq verir.
-                - 'pb-28': Player üçün aşağıda boşluq saxlayır.
-              */}
+
+              {/* Əsas Məzmun Sahəsi */}
               <main className="flex-1 md:ml-60 pb-28">
-                {/* YENİ: Mobil naviqasiya (hamburger menyu) */}
+                
+                {/* Mobil Naviqasiya (PC-də 'md:hidden') */}
                 <MobileNav />
                 
-                {/* Səhifə məzmunu üçün daxili padding */}
+                {/* Səhifə Məzmunu (daxili padding ilə) */}
                 <div className="p-8">
                   <Routes>
                     <Route path="/" element={<Index />} />
@@ -64,6 +59,8 @@ const App = () => (
                   </Routes>
                 </div>
               </main>
+
+              {/* Player (PC-də 'md:ml-60') */}
               <Player />
             </div>
           </BrowserRouter>

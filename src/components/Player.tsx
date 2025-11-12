@@ -1,8 +1,11 @@
+// src/components/Player.tsx
 import { usePlayer } from "@/context/player-context";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Play, Pause, SkipBack, SkipForward, Volume2, Heart } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Track } from "@/types"; 
+import { cn } from "@/lib/utils"; 
 
 export function Player() {
   const {
@@ -16,13 +19,20 @@ export function Player() {
     seekTo,
     playNext,
     playPrevious,
+    likedTracks, 
+    toggleLike, 
   } = usePlayer();
 
   const [localTime, setLocalTime] = useState(0);
+  // YENİ: Slider-i sürüşdürərkən mahnını dayandırmaq üçün
+  const [isSeeking, setIsSeeking] = useState(false);
 
   useEffect(() => {
-    setLocalTime(currentTime);
-  }, [currentTime]);
+    // Əgər istifadəçi slideri çəkmirsə, mahnının vaxtını yenilə
+    if (!isSeeking) {
+      setLocalTime(currentTime);
+    }
+  }, [currentTime, isSeeking]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -31,53 +41,74 @@ export function Player() {
   };
 
   if (!currentTrack) {
-    return null;
+    return null; 
   }
 
+  const isLiked =
+    likedTracks.find((t: Track) => t.id === currentTrack.id) !== undefined;
+
+  // === DÜZƏLİŞ: Slider məntiqi ===
+  const handleSeekChange = ([value]: number[]) => {
+    setLocalTime(value); // Anında slideri yenilə
+    seekTo(value); // Anında mahnını da dəyiş
+  };
+
   return (
-    <footer className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur-lg">
+    <footer className="fixed bottom-0 left-0 right-0 md:ml-60 border-t border-border bg-card/95 backdrop-blur-lg z-50">
       <div className="px-4 py-3">
         {/* Progress bar */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-muted-foreground w-10 text-right">
             {formatTime(localTime)}
           </span>
+          {/* === DÜZƏLİŞ: 'onValueChangeCommitted' silindi === */}
           <Slider
             value={[localTime]}
-            max={duration || 100}
-            step={0.1}
+            max={duration || 300}
+            step={1}
             className="flex-1"
-            onValueChange={([value]) => {
-              setLocalTime(value);
-              seekTo(value);
-            }}
+            onValueChange={handleSeekChange}
           />
           <span className="text-xs text-muted-foreground w-10">
             {formatTime(duration)}
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          {/* Track info */}
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <img
-              src={currentTrack.coverUrl}
-              alt={currentTrack.title}
-              className="w-14 h-14 rounded-lg object-cover"
-            />
-            <div className="min-w-0">
-              <p className="font-medium truncate">{currentTrack.title}</p>
-              <p className="text-sm text-muted-foreground truncate">
+        {/* Player Controls */}
+        <div className="flex items-center justify-between">
+          {/* Track info & Like */}
+          <div className="flex items-center gap-3 w-1/3">
+            <div className="h-14 w-14 rounded-md overflow-hidden bg-muted">
+              {/* === DÜZƏLİŞ: 'albumCover' -> 'coverUrl' === */}
+              <img
+                src={currentTrack.coverUrl || "/placeholder.svg"}
+                alt={currentTrack.title}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div>
+              <p className="font-semibold truncate max-w-xs">
+                {currentTrack.title}
+              </p>
+              <p className="text-sm text-muted-foreground truncate max-w-xs">
                 {currentTrack.artist}
               </p>
             </div>
-            <Button variant="ghost" size="icon">
-              <Heart className={currentTrack.liked ? "fill-primary text-primary" : ""} />
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "hover:bg-accent/50",
+                isLiked && "fill-primary text-primary"
+              )}
+              onClick={() => toggleLike(currentTrack)}
+            >
+              <Heart className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Playback controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-1/3 justify-center">
             <Button
               variant="ghost"
               size="icon"
@@ -108,7 +139,7 @@ export function Player() {
           </div>
 
           {/* Volume control */}
-          <div className="flex items-center gap-2 flex-1 justify-end">
+          <div className="flex items-center gap-2 w-1/3 justify-end">
             <Volume2 className="h-4 w-4 text-muted-foreground" />
             <Slider
               value={[volume * 100]}

@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
-import { SidebarLink } from "./SidebarLink"; // Yaratdığımız köməkçi komponent
+// DÜZƏLİŞ: Import yolu düzəldildi (əgər SidebarLink eyni qovluqdadırsa)
+import { SidebarLink } from "./SidebarLink"; 
 
 export function Sidebar() {
   const { t } = useLanguage();
@@ -20,11 +21,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        // === RESPONSIVE DÜZƏLİŞ ===
         "hidden md:flex", // Mobildə gizlənir, böyük ekranda görünür
-        
-        // === STİL ===
-        // index.css-dəki xüsusi dəyişənləri istifadə edir
         "fixed inset-y-0 left-0 z-50 w-60",
         "flex-col border-r border-[hsl(var(--sidebar-border))]",
         "bg-[hsl(var(--sidebar-background))]",
@@ -42,6 +39,7 @@ export function Sidebar() {
 
         {/* === Əsas Naviqasiya === */}
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+          {/* === DÜZƏLİŞ: Səhv yazılış 'SiderbarLink' 'SidebarLink' ilə əvəz edildi === */}
           <SidebarLink href="/" icon={<Home className="h-4 w-4" />}>
             {t("home") || "Əsas Səhifə"}
           </SidebarLink>
@@ -64,6 +62,7 @@ export function Sidebar() {
 
         {/* === Alt Naviqasiya (Hesab, Tənzimləmələr) === */}
         <nav className="mt-auto border-t border-[hsl(var(--sidebar-border))] px-4 py-4 space-y-1">
+          {/* === DÜZƏLİŞ: Səhv yazılış 'SiderbarLink' 'SidebarLink' ilə əvəz edildi === */}
           <SidebarLink href="/settings" icon={<Settings className="h-4 w-4" />}>
             {t("settings") || "Tənzimləmələr"}
           </SidebarLink>

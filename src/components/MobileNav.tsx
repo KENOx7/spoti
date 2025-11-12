@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-// Naviqasiya linklərini təkrar istifadə üçün bir massivə çıxara bilərsiniz.
-// Bu linkləri həm də Sidebar.tsx-də istifadə edə bilərsiniz.
+// Linkləri təkrar istifadə etmək yaxşıdır
 const navLinks = [
   { href: "/", label: "Əsas Səhifə" },
   { href: "/charts", label: "Hit Parad" },
@@ -22,9 +21,8 @@ const settingsLinks = [
 ];
 
 export function MobileNav() {
-  // Bu komponent yalnız mobildə görünəcək ('md:hidden')
-  // və 'sticky' olaraq yuxarıda qalacaq.
   return (
+    // === DÜZƏLİŞ: 'md:hidden' klassı PC-də gizlədir ===
     <header className="md:hidden sticky top-0 z-40 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4">
       <Sheet>
         <SheetTrigger asChild>
@@ -33,7 +31,9 @@ export function MobileNav() {
             <span className="sr-only">Naviqasiya menyusunu aç</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col w-full max-w-sm">
+        
+        {/* === DÜZƏLİŞ: 'text-foreground' "X" ikonunun rəngini düzəldir === */}
+        <SheetContent side="left" className="flex flex-col w-full max-w-sm text-foreground">
           {/* Logo və ya başlıq */}
           <div className="flex items-center gap-2 border-b pb-4">
             <Music className="h-6 w-6 text-primary" />
@@ -69,10 +69,14 @@ function MobileNavLink({ href, children }: { href: string; children: React.React
   return (
     <NavLink
       to={href}
+      end={href === "/"} // Anasəhifə linkinin həmişə aktiv qalmaması üçün
       className={({ isActive }) =>
         cn(
           "text-lg p-3 rounded-md font-medium transition-colors hover:bg-muted",
-          isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+          isActive
+            ? "bg-primary text-primary-foreground"
+            // === DÜZƏLİŞ: Aktiv olmayan linklərin "dark mode"-da görünməsi üçün ===
+            : "text-foreground/70" 
         )
       }
     >
