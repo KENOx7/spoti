@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* YENİ: Əsas tema (Light Mode) təkmilləşdirildi */
+  :root {
+    --background: 0 0% 98%; /* Əvvəlki 100% (ağ) yerinə açıq boz */
+    --foreground: 210 40% 9.8%;
+
+    --card: 0 0% 100%; /* Kartlar ağ qaldı (kontrast üçün) */
+    --card-foreground: 210 40% 9.8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 40% 9.8%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 32% 95%;
+    --secondary-foreground: 217 32% 17%;
+
+    --muted: 0 0% 94%; /* Əvvəlki 96.1% yerinə bir az tündləşdirildi */
+    --muted-foreground: 215 20% 45%;
+
+    --accent: 217 91% 97%;
+    --accent-foreground: 217 91% 40%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 94%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    /* Light Mode Sidebar */
+    --sidebar-background: 0 0% 96%; /* Arxa fondan fərqlənməsi üçün */
+    --sidebar-foreground: 210 40% 9.8%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 92%; /* Muted-dən fərqli */
+    --sidebar-accent-foreground: 210 40% 9.8%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  /* YENİ: Dark Mode rəngləri .dark klassına köçürüldü */
+  .dark {
+    --background: 0 0% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 0 0% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 0 0% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 20% 14%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 20% 20%;
+    --input: 217 20% 18%;
+    --ring: 217 91% 60%;
+
+    /* Dark Mode Sidebar */
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 32% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 20% 20%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
