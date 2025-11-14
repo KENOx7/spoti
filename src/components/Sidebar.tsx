@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
-// DÜZƏLİŞ: Import yolu düzəldildi (əgər SidebarLink eyni qovluqdadırsa)
-import { SidebarLink } from "./SidebarLink"; 
+import { SidebarLink } from "./SidebarLink";
+import { LanguageSwitcher } from "./LanguageSwitcher"; 
 
 export function Sidebar() {
   const { t } = useLanguage();
@@ -41,34 +41,39 @@ export function Sidebar() {
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
           {/* === DÜZƏLİŞ: Səhv yazılış 'SiderbarLink' 'SidebarLink' ilə əvəz edildi === */}
           <SidebarLink href="/" icon={<Home className="h-4 w-4" />}>
-            {t("home") || "Əsas Səhifə"}
+            {t("home")}
           </SidebarLink>
           <SidebarLink href="/charts" icon={<LayoutGrid className="h-4 w-4" />}>
-            {t("charts") || "Hit Parad"}
+            {t("charts")}
           </SidebarLink>
           <SidebarLink href="/liked" icon={<Heart className="h-4 w-4" />}>
-            {t("likedSongs") || "Bəyəndiklərim"}
+            {t("likedSongs")}
           </SidebarLink>
           <SidebarLink href="/collections" icon={<LayoutGrid className="h-4 w-4" />}>
-            {t("collections") || "Kolleksiyalar"}
+            {t("collections")}
+          </SidebarLink>
+          <SidebarLink href="/recently-added" icon={<Music className="h-4 w-4" />}>
+            {t("recentlyAdded")}
           </SidebarLink>
           <SidebarLink href="/ask-ai" icon={<Sparkles className="h-4 w-4" />}>
-            {t("askAI") || "AI-dan Soruş"}
+            {t("askAI")}
           </SidebarLink>
           <SidebarLink href="/make-playlist" icon={<PlusCircle className="h-4 w-4" />}>
-            {t("makePlaylist") || "Playlist Yarat"}
+            {t("makePlaylist")}
           </SidebarLink>
         </nav>
 
         {/* === Alt Naviqasiya (Hesab, Tənzimləmələr) === */}
         <nav className="mt-auto border-t border-[hsl(var(--sidebar-border))] px-4 py-4 space-y-1">
-          {/* === DÜZƏLİŞ: Səhv yazılış 'SiderbarLink' 'SidebarLink' ilə əvəz edildi === */}
           <SidebarLink href="/settings" icon={<Settings className="h-4 w-4" />}>
-            {t("settings") || "Tənzimləmələr"}
+            {t("settings")}
           </SidebarLink>
           <SidebarLink href="/account" icon={<User className="h-4 w-4" />}>
-            {t("account") || "Hesabım"}
+            {t("account")}
           </SidebarLink>
+          <div className="pt-2">
+            <LanguageSwitcher />
+          </div>
         </nav>
       </div>
     </aside>

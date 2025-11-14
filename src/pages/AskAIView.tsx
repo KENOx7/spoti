@@ -112,7 +112,7 @@ export default function AskAIView() {
   const { t } = useLanguage();
   const { setQueue, playTrack } = usePlayer();
   const [messages, setMessages] = useState<Message[]>([
-    { role: "ai", content: t("ai_welcome_message") },
+    { role: "ai", content: t("aiWelcomeMessage") },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -203,8 +203,8 @@ export default function AskAIView() {
           <Sparkles className="h-8 w-8 text-foreground" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">{t("ask_ai")}</h1>
-          <p className="text-muted-foreground">{t("ask_ai_desc")}</p>
+          <h1 className="text-3xl font-bold">{t("askAI")}</h1>
+          <p className="text-muted-foreground">{t("askAIDescription")}</p>
         </div>
       </div>
 
@@ -220,7 +220,7 @@ export default function AskAIView() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
-          placeholder={t("ask_ai_placeholder")}
+          placeholder={t("askAIPlaceholder")}
           disabled={isLoading || !API_KEY}
           className="h-12 text-base"
         />

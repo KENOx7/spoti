@@ -20,6 +20,8 @@ import NotFound from "./pages/NotFound";
 import MakePlaylistView from "./pages/MakePlaylistView";
 import SettingsView from "./pages/SettingsView";
 import AccountView from "./pages/AccountView";
+import PlaylistDetailView from "./pages/PlaylistDetailView";
+import RecentlyAddedView from "./pages/RecentlyAddedView";
 
 const queryClient = new QueryClient();
 
@@ -36,18 +38,19 @@ const App = () => (
               <Sidebar />
 
               {/* Əsas Məzmun Sahəsi */}
-              <main className="flex-1 md:ml-60 pb-28">
+              <main className="flex-1 md:ml-60 pb-20 sm:pb-24 md:pb-28">
                 
                 {/* Mobil Naviqasiya (PC-də 'md:hidden') */}
                 <MobileNav />
                 
                 {/* Səhifə Məzmunu (daxili padding ilə) */}
-                <div className="p-8">
+                <div className="p-4 sm:p-6 md:p-8">
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/charts" element={<ChartView />} />
                     <Route path="/liked" element={<LikedSongsView />} />
                     <Route path="/collections" element={<CollectionsView />} />
+                    <Route path="/recently-added" element={<RecentlyAddedView />} />
                     <Route path="/ask-ai" element={<AskAIView />} />
                     <Route
                       path="/make-playlist"
@@ -55,6 +58,7 @@ const App = () => (
                     />
                     <Route path="/settings" element={<SettingsView />} />
                     <Route path="/account" element={<AccountView />} />
+                    <Route path="/playlist/:id" element={<PlaylistDetailView />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>

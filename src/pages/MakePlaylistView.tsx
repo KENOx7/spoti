@@ -4,58 +4,101 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, Music } from "lucide-react";
-// DÜZƏLİŞ: useLanguage hooku müvəqqəti yığışdırıldı
+import { useToast } from "@/hooks/use-toast";
+import { storage } from "@/lib/storage";
+import { Playlist } from "@/types";
+import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/context/language-context";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function MakePlaylistView() {
-  // DÜZƏLİŞ: Form üçün state-lər əlavə edildi
+  const { t } = useLanguage();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [playlistName, setPlaylistName] = useState("");
   const [description, setDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleCreatePlaylist = () => {
-    if (!playlistName) {
-      alert("Playlist adı mütləqdir.");
+    if (!playlistName.trim()) {
+      toast({
+        title: t("error"),
+        description: t("playlistName") + " " + t("error"),
+        variant: "destructive",
+      });
       return;
     }
-    console.log("Yeni playlist yaradılır:", {
-      name: playlistName,
-      description: description,
-    });
-    // Burada real API sorğusu və ya yönləndirmə olacaq
-    alert(`"${playlistName}" adlı playlist yaradıldı! (konsola baxın)`);
-    setPlaylistName("");
-    setDescription("");
+
+    setIsCreating(true);
+
+    try {
+      const playlists = storage.getPlaylists();
+      const newPlaylist: Playlist = {
+        id: `playlist-${Date.now()}`,
+        name: playlistName.trim(),
+        description: description.trim() || undefined,
+        coverUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300&h=300&fit=crop",
+        tracks: [],
+        createdAt: new Date(),
+      };
+
+      storage.savePlaylists([...playlists, newPlaylist]);
+
+      toast({
+        title: t("playlistCreated"),
+        description: `"${playlistName}" ${t("playlistCreated")}`,
+      });
+
+      setPlaylistName("");
+      setDescription("");
+      
+      // Navigate to collections after a short delay
+      setTimeout(() => {
+        navigate("/collections");
+      }, 1000);
+    } catch (error) {
+      console.error("Error creating playlist:", error);
+      toast({
+        title: t("error"),
+        description: t("error") + " " + t("tryAgain"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Səhifə Başlığı */}
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-xl bg-primary/10">
-          <PlusCircle className="h-8 w-8 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold">Yeni Playlist Yarat</h1>
-          <p className="text-muted-foreground">Yeni playlistinizi yaratmaq üçün məlumatları daxil edin.</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<PlusCircle className="h-8 w-8 text-primary" />}
+        title={t("createPlaylist")}
+        subtitle={t("createPlaylist")}
+        iconBgClass="bg-primary/10"
+      />
 
       {/* Playlist Formu */}
-      <div className="p-6 bg-card rounded-lg space-y-4">
+      <div className="p-6 bg-card rounded-lg border border-border space-y-4">
         <Input 
-          placeholder="Playlist Adı" 
+          placeholder={t("playlistName")} 
           className="text-lg"
           value={playlistName}
           onChange={(e) => setPlaylistName(e.target.value)}
         />
         <Textarea
-          placeholder="Təsvir əlavə edin (könüllü)..."
+          placeholder={t("playlistDescription")}
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
-        <Button size="lg" className="w-full" onClick={handleCreatePlaylist}>
+        <Button 
+          size="lg" 
+          className="w-full" 
+          onClick={handleCreatePlaylist}
+          disabled={isCreating || !playlistName.trim()}
+        >
           <Music className="mr-2 h-4 w-4" />
-          Playlist Yarat
+          {isCreating ? t("save") + "..." : t("createPlaylist")}
         </Button>
       </div>
     </div>
