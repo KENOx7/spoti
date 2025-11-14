@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlaylistCarousel } from "@/components/PlaylistCarousel";
 
 export default function CollectionsView() {
   const { t } = useLanguage();
@@ -82,55 +83,64 @@ export default function CollectionsView() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {playlists.map((playlist) => (
-          <Card 
-            key={playlist.id} 
-            className="group hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
-            onClick={() => navigate(`/playlist/${playlist.id}`)}
-          >
-            <CardHeader className="p-0">
-              <div className="relative aspect-square overflow-hidden rounded-t-lg bg-muted">
-                <img
-                  src={playlist.coverUrl}
-                  alt={playlist.name}
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/playlist/${playlist.id}`);
-                    }}
-                    className="h-10 w-10 text-white hover:bg-white/20 flex items-center justify-center"
-                  >
-                    <Play className="h-5 w-5 fill-white" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeletePlaylist(playlist.id);
-                    }}
-                    className="h-10 w-10 flex items-center justify-center"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+      {/* Use carousel for many playlists, grid for few */}
+      {playlists.length <= 8 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {playlists.map((playlist) => (
+            <Card 
+              key={playlist.id} 
+              className="group hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
+              onClick={() => navigate(`/playlist/${playlist.id}`)}
+            >
+              <CardHeader className="p-0">
+                <div className="relative aspect-square overflow-hidden rounded-t-lg bg-muted">
+                  <img
+                    src={playlist.coverUrl}
+                    alt={playlist.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/playlist/${playlist.id}`);
+                      }}
+                      className="h-10 w-10 text-white hover:bg-white/20 flex items-center justify-center"
+                    >
+                      <Play className="h-5 w-5 fill-white" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePlaylist(playlist.id);
+                      }}
+                      className="h-10 w-10 flex items-center justify-center"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <CardTitle className="text-base truncate">{playlist.name}</CardTitle>
-              <CardDescription className="text-sm">
-                {playlist.tracks.length} {playlist.tracks.length === 1 ? t("track") : t("tracks")}
-              </CardDescription>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardHeader>
+              <CardContent className="p-4">
+                <CardTitle className="text-base truncate">{playlist.name}</CardTitle>
+                <CardDescription className="text-sm">
+                  {playlist.tracks.length} {playlist.tracks.length === 1 ? t("track") : t("tracks")}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <PlaylistCarousel
+          playlists={playlists}
+          showGridOnDesktop={false}
+          maxDesktopItems={8}
+        />
+      )}
 
       <div className="flex justify-center sm:hidden">
         <Button onClick={() => navigate("/make-playlist")} className="w-full">

@@ -197,38 +197,38 @@ export default function AskAIView() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-9rem)] max-w-3xl mx-auto">
+    <div className="flex flex-col w-full min-w-0 h-[calc(100vh-9rem)] max-w-3xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 rounded-xl bg-muted/50">
+        <div className="p-3 rounded-xl bg-muted/50 shrink-0">
           <Sparkles className="h-8 w-8 text-foreground" />
         </div>
-        <div>
-          <h1 className="text-3xl font-bold">{t("askAI")}</h1>
-          <p className="text-muted-foreground">{t("askAIDescription")}</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">{t("askAI")}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground truncate">{t("askAIDescription")}</p>
         </div>
       </div>
 
-      <Card className="flex-1 overflow-y-auto p-4 space-y-4">
+      <Card className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.map((msg, index) => (
           <MessageItem key={index} message={msg} onPlayAll={handlePlayAllFromAI} />
         ))}
         {isLoading && <LoadingIndicator />}
       </Card>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex gap-2 w-full min-w-0">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
           placeholder={t("askAIPlaceholder")}
           disabled={isLoading || !API_KEY}
-          className="h-12 text-base"
+          className="h-12 text-base flex-1 min-w-0"
         />
         <Button
           size="icon"
           onClick={handleSend}
           disabled={isLoading || !input.trim() || !API_KEY}
-          className="h-12 w-12"
+          className="h-12 w-12 shrink-0"
         >
           <Send className="h-5 w-5" />
         </Button>
@@ -271,9 +271,9 @@ const MessageItem = ({
   onPlayAll: (tracks: Track[]) => void;
 }) => (
   <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-    <div className={`max-w-[80%] space-y-2`}>
+    <div className={`max-w-[85%] sm:max-w-[80%] min-w-0 space-y-2`}>
       <div
-        className={`p-4 rounded-lg ${
+        className={`p-3 sm:p-4 rounded-lg break-words ${
           message.role === "user"
             ? "bg-primary text-primary-foreground"
             : message.error
@@ -281,7 +281,7 @@ const MessageItem = ({
             : "bg-muted"
         }`}
       >
-        <p>{message.content}</p>
+        <p className="text-sm sm:text-base break-words whitespace-pre-wrap">{message.content}</p>
       </div>
 
       {message.tracks && message.tracks.length > 0 && (

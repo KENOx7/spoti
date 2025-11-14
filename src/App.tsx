@@ -33,18 +33,18 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <div className="flex min-h-screen w-full bg-background text-foreground">
+            <div className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-background text-foreground">
               {/* PC Sidebar (mobildə 'hidden') */}
               <Sidebar />
 
               {/* Əsas Məzmun Sahəsi */}
-              <main className="flex-1 md:ml-60 pb-20 sm:pb-24 md:pb-28">
+              <main className="flex-1 w-full min-w-0 md:ml-60 pb-24 sm:pb-28 md:pb-28">
                 
                 {/* Mobil Naviqasiya (PC-də 'md:hidden') */}
                 <MobileNav />
                 
                 {/* Səhifə Məzmunu (daxili padding ilə) */}
-                <div className="p-4 sm:p-6 md:p-8">
+                <div className="w-full min-w-0 p-4 sm:p-6 md:p-8">
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/charts" element={<ChartView />} />

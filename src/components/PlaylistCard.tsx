@@ -37,8 +37,9 @@ export function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
   return (
     <Card
       className={cn(
-        "group cursor-pointer hover:shadow-lg transition-all duration-200",
-        "hover:scale-[1.02] active:scale-[0.98]"
+        "group cursor-pointer hover:shadow-lg active:shadow-md transition-all duration-200 touch-manipulation",
+        "hover:scale-[1.02] active:scale-[0.98]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       )}
       onClick={handleClick}
     >
@@ -54,13 +55,13 @@ export function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
             <Music className="h-16 w-16 text-muted-foreground" />
           </div>
         )}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 group-active:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100">
           <Button
             variant="ghost"
             size="icon"
             onClick={handlePlay}
             disabled={playlist.tracks.length === 0}
-            className="h-12 w-12 text-white hover:bg-white/20 rounded-full flex items-center justify-center"
+            className="h-12 w-12 text-white hover:bg-white/20 active:bg-white/30 rounded-full flex items-center justify-center touch-manipulation transition-all"
           >
             <Play className="h-6 w-6 fill-white" />
           </Button>

@@ -69,9 +69,10 @@ export const TrackItem = memo(function TrackItem({ track, index }: TrackItemProp
     <div
       className={cn(
         "group flex items-center gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 rounded-lg",
-        "transition-all duration-200 ease-in-out",
+        "transition-all duration-200 ease-in-out touch-manipulation",
         "hover:bg-muted/70 hover:scale-[1.01]",
-        "active:scale-[0.99]",
+        "active:bg-muted/90 active:scale-[0.99]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         isCurrentTrack && "bg-muted/80 shadow-sm"
       )}
     >
@@ -87,7 +88,8 @@ export const TrackItem = memo(function TrackItem({ track, index }: TrackItemProp
           variant="ghost"
           size="icon"
           className={cn(
-            "w-6 h-6 sm:w-8 sm:h-8 opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 flex items-center justify-center",
+            "w-6 h-6 sm:w-8 sm:h-8 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity absolute inset-0 flex items-center justify-center touch-manipulation",
+            "active:scale-95",
             index === undefined && "opacity-100"
           )}
           onClick={handlePlayClick}
@@ -128,8 +130,9 @@ export const TrackItem = memo(function TrackItem({ track, index }: TrackItemProp
         variant="ghost"
         size="icon"
         className={cn(
-          "h-8 w-8 sm:h-10 sm:w-10 shrink-0 transition-all",
-          "opacity-0 group-hover:opacity-100 sm:opacity-100"
+          "h-8 w-8 sm:h-10 sm:w-10 shrink-0 transition-all touch-manipulation",
+          "opacity-0 group-hover:opacity-100 group-active:opacity-100 sm:opacity-100",
+          "active:scale-95"
         )}
         onClick={handleLikeClick}
         aria-label={isLiked ? "Unlike track" : "Like track"}
@@ -149,8 +152,9 @@ export const TrackItem = memo(function TrackItem({ track, index }: TrackItemProp
             variant="ghost"
             size="icon"
             className={cn(
-              "h-8 w-8 sm:h-10 sm:w-10 shrink-0",
-              "opacity-0 group-hover:opacity-100 transition-opacity"
+              "h-8 w-8 sm:h-10 sm:w-10 shrink-0 touch-manipulation",
+              "opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity",
+              "active:scale-95"
             )}
           >
             <MoreHorizontal className="h-4 w-4" />

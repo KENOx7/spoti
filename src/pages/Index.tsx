@@ -6,7 +6,7 @@ import { usePlayer } from "@/context/player-context";
 import { Button } from "@/components/ui/button";
 import { Play, Heart, Music } from "lucide-react";
 import { useEffect, useState } from "react";
-import { PlaylistCard } from "@/components/PlaylistCard";
+import { PlaylistCarousel } from "@/components/PlaylistCarousel";
 import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";
 import { useNavigate } from "react-router-dom";
@@ -57,9 +57,9 @@ export default function Index() {
   };
 
   return (
-    <div className="space-y-8 sm:space-y-10">
+    <div className="space-y-8 sm:space-y-10 w-full min-w-0">
       {/* Hero Section */}
-      <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 via-blue-600/10 to-purple-600/10 p-4 sm:p-6 md:p-8 lg:p-12 border border-primary/20 shadow-xl">
+      <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 via-blue-600/10 to-purple-600/10 p-4 sm:p-6 md:p-8 lg:p-12 border border-primary/20 shadow-xl w-full min-w-0">
         <div className="relative z-10 animate-in">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary via-blue-400 to-purple-400 bg-clip-text text-transparent">
             {t("trending")}
@@ -83,15 +83,12 @@ export default function Index() {
       {/* Liked Songs Card */}
       {likedTracks.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl sm:text-3xl font-bold">{t("likedSongs")}</h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            <PlaylistCard
-              playlist={likedSongsPlaylist}
-              onClick={() => navigate("/liked")}
-            />
-          </div>
+          <PlaylistCarousel
+            playlists={[likedSongsPlaylist]}
+            showGridOnDesktop={true}
+            maxDesktopItems={1}
+            onPlaylistClick={() => navigate("/liked")}
+          />
         </section>
       )}
 
@@ -108,11 +105,11 @@ export default function Index() {
               {t("collections")}
             </Button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {playlists.slice(0, 6).map((playlist) => (
-              <PlaylistCard key={playlist.id} playlist={playlist} />
-            ))}
-          </div>
+          <PlaylistCarousel
+            playlists={playlists}
+            showGridOnDesktop={true}
+            maxDesktopItems={6}
+          />
           {playlists.length > 6 && (
             <div className="mt-4 text-center">
               <Button
