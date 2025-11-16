@@ -9,8 +9,10 @@ import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
-// --- DÜZƏLİŞ BURADADIR (Sessiya problemini həll edir) ---
-const API_BASE_URL = "http://localhost:5000";
+// Dinamik URL
+const API_BASE_URL = window.location.hostname === "localhost" 
+  ? "http://localhost:5000" 
+  : "";
 
 export default function AccountView() {
   const { user, isAuthenticated, logout, checkAuth, isLoading: authIsLoading } = useAuth();
@@ -24,23 +26,19 @@ export default function AccountView() {
   const [isPasswordChanging, setIsPasswordChanging] = useState(false);
   const [isProfileSaving, setIsProfileSaving] = useState(false);
 
-  // Load user data when component mounts or user changes
   useEffect(() => {
-    // auth-context-in `checkAuth` funksiyasını gözləyirik
     if (!authIsLoading) {
       if (isAuthenticated && user) {
         setUsername(user.username || "");
         setEmail(user.email || "");
-        // Avatar kimi əlavə məlumatları çək
-        loadUserProfile();
+        loadUserProfile(); // Əlavə məlumatları (avatar) yüklə
       } else {
-        // Əgər autentifikasiya yoxdursa, giri_ səhifəsinə yönləndir
+        // Əgər daxil olmayıbsa, login səhifəsinə yönləndir
         navigate("/login");
       }
     }
   }, [isAuthenticated, user, authIsLoading, navigate]);
 
-  // Tam profil məlumatlarını (avatar və s.) çəkən funksiya
   const loadUserProfile = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
@@ -51,13 +49,11 @@ export default function AccountView() {
       
       if (response.ok) {
         const data = await response.json();
-        // `username` və `email`-i yenidən təyin edirik ki, ən son məlumatlar olsun
         setUsername(data.username || "");
         setEmail(data.email || "");
-        setAvatarUrl(data.avatar_url || ""); // Avatarı təyin et
+        setAvatarUrl(data.avatar_url || "");
       } else if (response.status === 401) {
-         console.error("Not authenticated. Logging out.");
-         logout(); // Sessiya bitibsə, kontekstdən çıxış et
+         logout(); 
          navigate("/login");
       }
     } catch (error) {
@@ -65,7 +61,6 @@ export default function AccountView() {
     }
   };
 
-  // Profil yeniləmə
   const handleProfileSave = async () => {
     setIsProfileSaving(true);
     try {
@@ -79,38 +74,20 @@ export default function AccountView() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast({
-          title: "Success",
-          description: "Profile updated successfully.",
-        });
-        // Konteksti ən son məlumatla yenilə
-        checkAuth(); 
+        toast({ title: "Success", description: "Profile updated successfully." });
+        checkAuth(); // Konteksti yenilə
       } else {
-        toast({
-          title: "Update failed",
-          description: data.error || "An unknown error occurred.",
-          variant: "destructive",
-        });
+        toast({ title: "Update failed", description: data.error, variant: "destructive" });
       }
     } catch (error) {
-      console.error("Save profile error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to server.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to connect to server.", variant: "destructive" });
     }
     setIsProfileSaving(false);
   };
 
-  // Parol dəyişmə
   const handlePasswordChange = async () => {
     if (newPassword.length < 8) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 8 characters long.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Password must be at least 8 characters long.", variant: "destructive" });
       return;
     }
 
@@ -122,58 +99,37 @@ export default function AccountView() {
         body: JSON.stringify({ new_password: newPassword }),
         credentials: "include", 
       });
-
       const data = await response.json();
-
       if (response.ok && data.success) {
-        toast({
-          title: "Success",
-          description: data.message || "Password changed successfully.",
-        });
-        setNewPassword(""); // Inputu təmizlə
+        toast({ title: "Success", description: data.message });
+        setNewPassword("");
       } else {
-        toast({
-          title: "Change failed",
-          description: data.error || "An unknown error occurred.",
-          variant: "destructive",
-        });
+        toast({ title: "Change failed", description: data.error, variant: "destructive" });
       }
     } catch (error) {
-      console.error("Change password error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to server.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to connect to server.", variant: "destructive" });
     }
     setIsPasswordChanging(false);
   };
 
-  // Çıxış
   const handleLogout = async () => {
     await logout();
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
-    });
+    toast({ title: "Logged out", description: "You have been logged out successfully." });
     navigate("/");
   };
 
-  // Avatarın baş hərfləri
   const getAvatarFallback = (name) => {
-    return name ? name.substring(0, 2).toUpperCase() : "U"; // User
+    return name ? name.substring(0, 2).toUpperCase() : "U";
   };
   
-  // `authIsLoading` zamanı gözləmə ekranı
   if (authIsLoading || !isAuthenticated) {
     return (
-      <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8 text-center">
-        Loading account...
+      <div className="container mx-auto max-w-4xl p-8 text-center">
+        Loading...
       </div>
     );
   }
 
-  // Yüklənmiş və autentifikasiya olunmuş səhifə
   return (
     <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
       <h1 className="text-3xl font-bold mb-6 sm:mb-8">Account</h1>
@@ -187,18 +143,14 @@ export default function AccountView() {
               {getAvatarFallback(username)}
             </AvatarFallback>
           </Avatar>
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" disabled>
             <Camera className="mr-2 h-4 w-4" />
-            Change Photo
+            Change Photo (Soon)
           </Button>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            (Feature not yet implemented)
-          </p>
         </div>
 
         {/* Sağ (Formlar) */}
         <div className="md:col-span-2 space-y-6">
-          {/* Profil Ayarları */}
           <div className="p-6 bg-card rounded-lg border border-border">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <User className="mr-2 h-5 w-5" /> Profile Settings
@@ -232,7 +184,6 @@ export default function AccountView() {
             </div>
           </div>
 
-          {/* Təhlükəsizlik */}
           <div className="p-6 bg-card rounded-lg border border-border">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Shield className="mr-2 h-5 w-5" /> Security
@@ -262,7 +213,6 @@ export default function AccountView() {
             </Button>
           </div>
           
-          {/* Çıxış */}
           <div className="p-6 bg-card rounded-lg border border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-xl font-semibold text-destructive">Logout</h2>
