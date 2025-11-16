@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hesabım</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .info p {
+            margin: 10px 0;
+            color: #555;
+        }
+        .info strong {
+            color: #333;
+        }
+        .links {
+            margin-top: 30px;
+        }
+        a {
+            display: inline-block;
+            margin: 10px 10px 10px 0;
+            padding: 12px 24px;
+            background: #1db954;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        a:hover {
+            background: #1ed760;
+        }
+        .logout {
+            background: #dc3545;
+        }
+        .logout:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hesabım</h1>
+        
+        <div class="info">
+            <p><strong>İstifadəçi adı:</strong> {{ username }}</p>
+            <p>Bu sizin hesab səhifənizdir.</p>
+        </div>
+        
+        <div class="links">
+            <a href="{{ url_for('user_home') }}">Ana Səhifəyə Qayıt</a>
+            <a href="{{ url_for('home') }}" class="logout">Çıxış</a>
+        </div>
+    </div>
+</body>
+</html>
+

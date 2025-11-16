@@ -1,0 +1,30 @@
+{
+  "users": [
+    {
+      "id": "1612e96a-1e8d-4533-92bc-ea63e35fb8ea",
+      "username": "sdsds",
+      "email": "meniv10755@gyknife.com",
+      "password_hash": "$2b$12$d8vJnQoAcV2IETrC/OEbKe0Hya3/tpJmrF5EV4Bk4LT.j69CCeoea",
+      "created_at": "2025-11-16T03:16:48.550673",
+      "guest": false
+    },
+    {
+      "id": "e785a2e9-bf55-46cb-bf7d-7ba75e740301",
+      "username": "kenan",
+      "email": "kenan@gmail.com",
+      "password_hash": "$2b$12$TB1J/JBXGuAEdOsyiPwrle/6oUNE3byvT06jnW7MNyMNL/wpC8hL6",
+      "created_at": "2025-11-16T03:19:21.119664",
+      "guest": false
+    },
+    {
+      "id": "335683f8-7cda-47c2-b3b3-b57216aa1602",
+      "username": "Kenan",
+      "email": "mirtahesab777@gmail.com",
+      "password_hash": null,
+      "created_at": "2025-11-16T21:38:54.964442",
+      "guest": false,
+      "avatar_url": null,
+      "google_id": "116311742978190635916"
+    }
+  ]
+}
