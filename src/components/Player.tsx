@@ -60,15 +60,15 @@ export function Player() {
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 w-full md:ml-60 border-t border-border bg-card/95 backdrop-blur-xl z-50 shadow-2xl">
+    <footer className="fixed bottom-0 left-0 right-0 w-full md:left-60 border-t border-border bg-card/95 backdrop-blur-xl z-50 shadow-2xl">
       {error && (
         <div className="px-2 sm:px-4 py-1 bg-destructive/20 text-destructive text-xs text-center animate-in">
           {error}
         </div>
       )}
-      <div className="px-2 sm:px-4 py-2 sm:py-3 md:py-3">
+      <div className="px-2 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-3 md:py-3 max-w-full">
         {/* Progress bar */}
-        <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+        <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2 w-full">
           <span className="text-xs text-muted-foreground w-8 sm:w-10 text-right shrink-0">
             {formatTime(localTime)}
           </span>
@@ -88,9 +88,9 @@ export function Player() {
         {/* Player Controls */}
         <div className="flex flex-col gap-2 sm:gap-0">
           {/* Main controls row */}
-          <div className="flex items-center justify-between gap-1 sm:gap-2 w-full min-w-0">
-            {/* Track info & Like - Mobil üçün kiçildilmiş */}
-            <div className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0 flex-1 md:flex-none md:w-1/3">
+          <div className="flex items-center justify-between gap-1 sm:gap-2 md:gap-4 w-full min-w-0 max-w-full">
+            {/* Track info & Like - Left section */}
+            <div className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0 flex-1 md:flex-none md:min-w-[180px] md:max-w-[30%]">
               <div className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-md overflow-hidden bg-muted shrink-0">
                 <img
                   src={currentTrack.coverUrl || "/placeholder.svg"}
@@ -125,8 +125,8 @@ export function Player() {
               </Button>
             </div>
 
-            {/* Playback controls - Mərkəzdə, mobil üçün əsas */}
-            <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0">
+            {/* Playback controls - Center section */}
+            <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0 justify-center">
               {/* Shuffle - Now visible on mobile */}
               <Button
                 variant="ghost"
@@ -192,14 +192,14 @@ export function Player() {
               </Button>
             </div>
 
-            {/* Volume control - Desktop only, mobile gets separate row */}
-            <div className="hidden md:flex items-center gap-2 w-1/3 justify-end">
-              <Volume2 className="h-4 w-4 text-muted-foreground" />
+            {/* Volume control - Right section (Desktop only) */}
+            <div className="hidden md:flex items-center gap-2 flex-1 md:flex-none md:min-w-[180px] md:max-w-[30%] justify-end">
+              <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
               <Slider
                 value={[volume * 100]}
                 max={100}
                 step={1}
-                className="w-24"
+                className="w-24 max-w-[120px]"
                 onValueChange={([value]) => setVolume(value / 100)}
               />
             </div>
