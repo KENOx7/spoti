@@ -1,6 +1,6 @@
 """
 Utility functions for the backend
-(Google Auth və Bütün Kritik Düzəlişlər Daxil Edilib)
+(Google Auth, UUID, Race Condition Fixes)
 """
 import json
 import os
@@ -13,9 +13,8 @@ from datetime import datetime
 DATABASE_FILE = os.path.join(os.path.dirname(__file__), 'database.json')
 
 # --- KRİTİK DÜZƏLİŞ (RACE CONDITION) ---
+# Eyni anda birdən çox yazma əməliyyatının qarşısını alır
 db_lock = threading.Lock()
-# ----------------------------------------
-
 
 def load_database():
     """Load users from database.json"""
@@ -34,14 +33,26 @@ def load_database():
         print(f"[ERROR] Failed to load database: {e}")
         return {"users": []}
 
-
 def save_database(data):
     """
     Save users to database.json (thread-safe).
     Bu funksiya yalnız kilid daxilində çağırılmalıdır.
     """
     try:
-        with open(DATABASE_FILE, 'w') as f:
+        # Vercel-də fayl sistemi "read-only" ola bilər, 
+        # /tmp qovluğuna yazmaq lazım gələ bilər
+        # Hələlik default yeri yoxlayaq
+        filepath = DATABASE_FILE
+        if os.getenv('VERCEL_URL'):
+             # Vercel-də yalnız /tmp qovluğu yazılabilirdir
+             filepath = os.path.join('/tmp', 'database.json')
+             # Əgər /tmp-da yoxdursa, əsas fayldan oxuyub /tmp-a yazaq (ilk dəfə)
+             if not os.path.exists(filepath) and os.path.exists(DATABASE_FILE):
+                 db_copy = load_database()
+                 with open(filepath, 'w') as f:
+                     json.dump(db_copy, f, indent=2)
+                 
+        with open(filepath, 'w') as f:
             json.dump(data, f, indent=2)
         return True
     except Exception as e:
@@ -50,71 +61,57 @@ def save_database(data):
 
 
 def hash_password(password):
-    """Hash a password using bcrypt"""
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-
 def verify_password(password, password_hash):
-    """Verify a password against a hash"""
     try:
-        if not password_hash: # Google ilə daxil olanlar üçün
+        if not password_hash: # Google/Spotify ilə daxil olanların parolu olmur
             return False
         return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
     except Exception as e:
-        print(f"[ERROR] Password verification failed: {e}")
         return False
 
-
 def get_user_by_email(email):
-    """Get user by email from database"""
     db = load_database()
     for user in db.get('users', []):
         if user.get('email') == email:
             return user
     return None
 
-
 def get_user_by_username(username):
-    """Get user by username from database"""
     db = load_database()
     for user in db.get('users', []):
         if user.get('username') == username:
             return user
     return None
 
-
 def get_user_by_id(user_id):
-    """Get user by ID from database"""
     db = load_database()
     for user in db.get('users', []):
         if user.get('id') == user_id:
             return user
     return None
 
-
 def create_user(username, email, password):
-    """
-    Create a new user in the database (thread-safe).
-    """
     with db_lock:
         db = load_database()
         users = db.get('users', [])
         
         if any(user.get('email') == email for user in users):
-            return False, "Email already exists"
+            return False, "Email already exists", None
         
         if any(user.get('username') == username for user in users):
-            return False, "Username already exists"
+            return False, "Username already exists", None
         
         new_user = {
             "id": str(uuid.uuid4()),
             "username": username,
             "email": email,
-            "password_hash": hash_password(password), # Normal qeydiyyat
+            "password_hash": hash_password(password),
             "created_at": datetime.now().isoformat(),
             "guest": False,
             "avatar_url": None,
-            "google_id": None # Normal qeydiyyat
+            "google_id": None
         }
         
         users.append(new_user)
@@ -123,39 +120,37 @@ def create_user(username, email, password):
         if save_database(db):
             user_data_to_return = new_user.copy()
             del user_data_to_return['password_hash']
-            return True, user_data_to_return
+            return True, "User created", user_data_to_return
         else:
-            return False, "Failed to save user"
+            return False, "Failed to save user", None
 
-
-# --- GOOGLE ÜÇÜN YENİ FUNKSİYA ---
 def get_or_create_google_user(email, username, google_id):
-    """
-    Find user by email (from Google) or create a new one (thread-safe).
-    """
     with db_lock:
         db = load_database()
         users = db.get('users', [])
         
-        # Emaillə axtar
         existing_user = next((u for u in users if u.get('email') == email), None)
         
         if existing_user:
-            # İstifadəçi tapıldı, məlumatlarını qaytar
+            # Əgər istifadəçi mövcuddursa, Google ID-sini əlavə edək (əgər yoxdursa)
+            if not existing_user.get('google_id'):
+                existing_user['google_id'] = google_id
+                save_database(db)
+                
             user_data = existing_user.copy()
             if 'password_hash' in user_data:
                 del user_data['password_hash']
             return True, user_data
 
-        # Tapılmadı, yeni Google istifadəçisi yarat
+        # Yeni Google istifadəçisi yarat
         new_user = {
             "id": str(uuid.uuid4()),
-            "username": username, # Google-dan gələn ad
+            "username": username,
             "email": email,
-            "password_hash": None, # Google ilə daxil olur, parolu yoxdur
+            "password_hash": None, # Google ilə daxil olduğu üçün parolu yoxdur
             "created_at": datetime.now().isoformat(),
             "guest": False,
-            "avatar_url": None, # Google-dan gələn şəkli bura qoymaq olar
+            "avatar_url": None, # Google-dan gələn 'picture' URL-i bura əlavə edilə bilər
             "google_id": google_id
         }
         
@@ -168,11 +163,7 @@ def get_or_create_google_user(email, username, google_id):
         else:
             return False, "Failed to save Google user"
 
-
 def update_user_profile(user_id, new_username, new_email):
-    """
-    Update a user's profile information (thread-safe).
-    """
     with db_lock:
         db = load_database()
         users = db.get('users', [])
@@ -203,11 +194,7 @@ def update_user_profile(user_id, new_username, new_email):
         else:
             return False, "Failed to save profile changes"
 
-
 def update_user_password(user_id, new_password):
-    """
-    Update a user's password (thread-safe).
-    """
     with db_lock:
         db = load_database()
         users = db.get('users', [])
@@ -228,14 +215,10 @@ def update_user_password(user_id, new_password):
         else:
             return False, "Failed to save new password"
 
-
 def validate_email(email):
-    """Validate email format"""
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    pattern = r'^[a-zA-Z0.9._%+-]+@[a-zA-Z0.9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
-
 def validate_username(username):
-    """Validate username format (4-20 alphanumeric characters)"""
     pattern = r'^[a-zA-Z0-9]{4,20}$'
     return re.match(pattern, username) is not None
