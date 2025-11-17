@@ -174,7 +174,7 @@ const translations: Translations = {
     askAI: "AI-dan Soruş",
     askAIDescription: "AI ilə gücləndirilmiş musiqi tövsiyələri alın",
     askAIPlaceholder: "Musiqi tövsiyələri üçün soruşun...",
-    aiWelcomeMessage: "Salam! Yeni musiqi kəşf etməkdə kömək edə bilərəm. Nə dinləmək istəyirsiniz?",
+    aiWelcomeMessage: "Salam! Yeni musiqi kəşf etməkdə kömək edə bilərəm. Nə tərz musiqi dinləmək istəyirsiniz?",
     
     // Settings
     appearance: "Görünüş",

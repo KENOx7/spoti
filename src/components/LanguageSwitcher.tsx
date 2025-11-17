@@ -39,7 +39,7 @@ export function LanguageSwitcher() {
             language === "en" && "bg-accent"
           )}
         >
-          <span className="mr-2">🇬🇧</span>
+          <span className="mr-2">ᴇɴ</span>
           English
         </DropdownMenuItem>
       </DropdownMenuContent>

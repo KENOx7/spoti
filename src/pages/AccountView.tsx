@@ -81,21 +81,49 @@ export default function AccountView() {
 
       {/* Təhlükəsizlik */}
       <div className="p-6 bg-card rounded-lg space-y-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          Təhlükəsizlik
-        </h2>
+  <h2 className="text-xl font-semibold flex items-center gap-2">
+    <Shield className="h-5 w-5" />
+    Təhlükəsizlik
+  </h2>
+
+  {/* Köhnə Şifrə */}
+        <div className="space-y-2">
+          <Label htmlFor="oldPassword">Köhnə Şifrə</Label>
+          <Input
+            id="oldPassword"
+            type="password"
+            value={oldPassword}
+            onChange={(e) => setOldPassword(e.target.value)}
+          />
+        </div>
+
+        {/* Yeni Şifrə */}
         <div className="space-y-2">
           <Label htmlFor="password">Yeni Şifrə</Label>
-          <Input 
-            id="password" 
+          <Input
+            id="password"
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
         </div>
-        <Button variant="outline" onClick={handlePasswordChange}>Şifrəni Dəyiş</Button>
+
+        {/* Yeni Şifrə (Təkrar) */}
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Yeni Şifrə (Təkrar)</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+        </div>
+
+        <Button variant="outline" onClick={handlePasswordChange}>
+          Şifrəni Dəyiş
+        </Button>
       </div>
+
       
       {/* Hesabdan Çıxış */}
       <div className="p-6 bg-card rounded-lg flex justify-between items-center">
