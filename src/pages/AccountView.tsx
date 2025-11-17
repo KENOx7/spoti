@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useLanguage } from "@/context/language-context"; // BU SƏTRİ ƏLAVƏ EDİN
 
 export default function AccountView() {
+  const { t } = useLanguage(); // Hook-u çağırırıq
 
   const [username, setUsername] = useState("istifadeci_adi");
   const [email, setEmail] = useState("user@example.com");
@@ -18,28 +20,27 @@ export default function AccountView() {
 
   const handleProfileSave = () => {
     console.log("Profil yadda saxlanılır:", { username, email });
-    alert("Profil məlumatları yadda saxlanıldı (konsola baxın)");
+    alert(t("profileSaved")); // Tərcümə edildi
   };
 
   const handlePasswordChange = () => {
-
     if (oldPassword.length === 0) {
-      alert("Köhnə şifrəni daxil edin.");
+      alert(t("enterOldPassword")); // Tərcümə edildi
       return;
     }
 
     if (newPassword.length < 6) {
-      alert("Yeni şifrə ən az 6 simvol olmalıdır.");
+      alert(t("shortPassword")); // Tərcümə edildi
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      alert("Yeni şifrə və təkrar uyğun deyil.");
+      alert(t("passwordMismatch")); // Tərcümə edildi
       return;
     }
 
     console.log("Şifrə dəyişdirilir...");
-    alert("Şifrə dəyişdirildi (real deyil)");
+    alert(t("passwordChanged")); // Tərcümə edildi
 
     setOldPassword("");
     setNewPassword("");
@@ -48,7 +49,7 @@ export default function AccountView() {
 
   const handleLogout = () => {
     console.log("İstifadəçi hesabdan çıxır...");
-    alert("Hesabdan çıxış edildi.");
+    alert(t("loggedOut")); // Tərcümə edildi
   };
 
   return (
@@ -60,27 +61,28 @@ export default function AccountView() {
           <User className="h-8 w-8 text-foreground" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">Hesabım</h1>
+          {/* t("account") context-də artıq var idi, onu istifadə edirik */}
+          <h1 className="text-3xl font-bold">{t("account")}</h1> 
           <p className="text-muted-foreground">
-            Hesab məlumatlarınızı və parametrlərinizi idarə edin.
+            {t("accountSubtitle")}
           </p>
         </div>
       </div>
 
       {/* Profil */}
       <div className="p-6 bg-card rounded-lg space-y-4">
-        <h2 className="text-xl font-semibold">Profil Məlumatları</h2>
+        <h2 className="text-xl font-semibold">{t("profileInfo")}</h2>
 
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16">
             <AvatarImage src="https://github.com/shadcn.png" alt="User" />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
-          <Button variant="outline">Şəkli Dəyiş</Button>
+          <Button variant="outline">{t("changePhoto")}</Button>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="username">İstifadəçi Adı</Label>
+          <Label htmlFor="username">{t("username")}</Label>
           <Input 
             id="username" 
             value={username} 
@@ -89,7 +91,7 @@ export default function AccountView() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">E-poçt</Label>
+          <Label htmlFor="email">{t("email")}</Label>
           <Input 
             id="email" 
             type="email" 
@@ -98,19 +100,19 @@ export default function AccountView() {
           />
         </div>
 
-        <Button onClick={handleProfileSave}>Dəyişiklikləri Yadda Saxla</Button>
+        <Button onClick={handleProfileSave}>{t("saveChanges")}</Button>
       </div>
 
       {/* Təhlükəsizlik */}
       <div className="p-6 bg-card rounded-lg space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Shield className="h-5 w-5" />
-          Təhlükəsizlik
+          {t("security")}
         </h2>
 
         {/* Köhnə Şifrə */}
         <div className="space-y-2">
-          <Label htmlFor="oldPassword">Köhnə Şifrə</Label>
+          <Label htmlFor="oldPassword">{t("oldPassword")}</Label>
           <Input
             id="oldPassword"
             type="password"
@@ -121,7 +123,7 @@ export default function AccountView() {
 
         {/* Yeni Şifrə */}
         <div className="space-y-2">
-          <Label htmlFor="newPassword">Yeni Şifrə</Label>
+          <Label htmlFor="newPassword">{t("newPassword")}</Label>
           <Input
             id="newPassword"
             type="password"
@@ -132,7 +134,7 @@ export default function AccountView() {
 
         {/* Yeni Şifrə (Təkrar) */}
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Yeni Şifrə (Təkrar)</Label>
+          <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
           <Input
             id="confirmPassword"
             type="password"
@@ -142,16 +144,16 @@ export default function AccountView() {
         </div>
 
         <Button variant="outline" onClick={handlePasswordChange}>
-          Şifrəni Dəyiş
+          {t("changePassword")}
         </Button>
       </div>
 
       {/* Hesabdan Çıxış */}
       <div className="p-6 bg-card rounded-lg flex justify-between items-center">
-         <h2 className="text-xl font-semibold text-destructive">Hesabdan Çıxış</h2>
+         <h2 className="text-xl font-semibold text-destructive">{t("logoutTitle")}</h2>
          <Button variant="destructive" onClick={handleLogout}>
            <LogOut className="mr-2 h-4 w-4" />
-           Çıxış Et
+           {t("logoutButton")}
          </Button>
       </div>
 

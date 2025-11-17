@@ -100,6 +100,29 @@ const translations: Translations = {
     // Recently Added
     recentlyAdded: "Recently Added",
     recentlyAddedDescription: "Tracks you've recently liked or added to playlists",
+
+    // Account Page (BU HİSSƏNİ ƏLAVƏ EDİN)
+    accountSubtitle: "Manage your account details and settings.",
+    profileInfo: "Profile Information",
+    changePhoto: "Change Photo",
+    username: "Username",
+    email: "Email",
+    saveChanges: "Save Changes",
+    security: "Security",
+    oldPassword: "Old Password",
+    newPassword: "New Password",
+    confirmPassword: "Confirm New Password",
+    changePassword: "Change Password",
+    logoutTitle: "Log Out",
+    logoutButton: "Log Out",
+    
+    // Alerts (Bildirişlər üçün)
+    enterOldPassword: "Please enter your old password.",
+    shortPassword: "New password must be at least 6 characters.",
+    passwordMismatch: "New passwords do not match.",
+    passwordChanged: "Password changed successfully.",
+    profileSaved: "Profile information saved.",
+    loggedOut: "Logged out successfully."
   },
   az: {
     // Navigation
@@ -192,6 +215,28 @@ const translations: Translations = {
     // Recently Added
     recentlyAdded: "Yeni Əlavə Edilənlər",
     recentlyAddedDescription: "Son bəyəndiyiniz və ya playlistə əlavə etdiyiniz mahnılar",
+
+    accountSubtitle: "Hesab məlumatlarınızı və parametrlərinizi idarə edin.",
+    profileInfo: "Profil Məlumatları",
+    changePhoto: "Şəkli Dəyiş",
+    username: "İstifadəçi Adı",
+    email: "E-poçt",
+    saveChanges: "Dəyişiklikləri Yadda Saxla",
+    security: "Təhlükəsizlik",
+    oldPassword: "Köhnə Şifrə",
+    newPassword: "Yeni Şifrə",
+    confirmPassword: "Yeni Şifrə (Təkrar)",
+    changePassword: "Şifrəni Dəyiş",
+    logoutTitle: "Hesabdan Çıxış",
+    logoutButton: "Çıxış Et",
+
+    // Alerts (Bildirişlər üçün)
+    enterOldPassword: "Köhnə şifrəni daxil edin.",
+    shortPassword: "Yeni şifrə ən az 6 simvol olmalıdır.",
+    passwordMismatch: "Yeni şifrə və təkrar uyğun deyil.",
+    passwordChanged: "Şifrə dəyişdirildi.",
+    profileSaved: "Profil məlumatları yadda saxlanıldı.",
+    loggedOut: "Hesabdan çıxış edildi."
   },
 };
 
