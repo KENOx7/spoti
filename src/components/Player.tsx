@@ -30,11 +30,9 @@ export function Player() {
   } = usePlayer();
 
   const [localTime, setLocalTime] = useState(0);
-  // YENİ: Slider-i sürüşdürərkən mahnını dayandırmaq üçün
   const [isSeeking, setIsSeeking] = useState(false);
 
   useEffect(() => {
-    // Əgər istifadəçi slideri çəkmirsə, mahnının vaxtını yenilə
     if (!isSeeking) {
       setLocalTime(currentTime);
     }
@@ -46,26 +44,23 @@ export function Player() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  if (!currentTrack) {
-    return null; 
-  }
+  if (!currentTrack) return null;
 
-  const isLiked =
-    likedTracks.find((t: Track) => t.id === currentTrack.id) !== undefined;
+  const isLiked = likedTracks.find((t: Track) => t.id === currentTrack.id) !== undefined;
 
-  // === DÜZƏLİŞ: Slider məntiqi ===
   const handleSeekChange = ([value]: number[]) => {
-    setLocalTime(value); // Anında slideri yenilə
-    seekTo(value); // Anında mahnını da dəyiş
+    setLocalTime(value);
+    seekTo(value);
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 w-full md:ml-60 border-t border-border bg-card/95 backdrop-blur-xl z-50 shadow-2xl">
+    <footer className="fixed bottom-0 left-0 md:left-60 right-0 w-full md:w-[calc(100%-15rem)] border-t border-border bg-card/95 backdrop-blur-xl z-50 shadow-2xl">
       {error && (
         <div className="px-2 sm:px-4 py-1 bg-destructive/20 text-destructive text-xs text-center animate-in">
           {error}
         </div>
       )}
+
       <div className="px-2 sm:px-4 py-2 sm:py-3 md:py-3">
         {/* Progress bar */}
         <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
@@ -87,9 +82,9 @@ export function Player() {
 
         {/* Player Controls */}
         <div className="flex flex-col gap-2 sm:gap-0">
-          {/* Main controls row */}
           <div className="flex items-center justify-between gap-1 sm:gap-2 w-full min-w-0">
-            {/* Track info & Like - Mobil üçün kiçildilmiş */}
+            
+            {/* Track info & Like */}
             <div className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0 flex-1 md:flex-none md:w-1/3">
               <div className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-md overflow-hidden bg-muted shrink-0">
                 <img
@@ -125,9 +120,8 @@ export function Player() {
               </Button>
             </div>
 
-            {/* Playback controls - Mərkəzdə, mobil üçün əsas */}
+            {/* Playback controls */}
             <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0">
-              {/* Shuffle - Now visible on mobile */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -173,7 +167,6 @@ export function Player() {
               >
                 <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
               </Button>
-              {/* Repeat - Now visible on mobile */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -192,7 +185,7 @@ export function Player() {
               </Button>
             </div>
 
-            {/* Volume control - Desktop only, mobile gets separate row */}
+            {/* Desktop volume */}
             <div className="hidden md:flex items-center gap-2 w-1/3 justify-end">
               <Volume2 className="h-4 w-4 text-muted-foreground" />
               <Slider
@@ -205,7 +198,7 @@ export function Player() {
             </div>
           </div>
 
-          {/* Mobile volume control - Separate row on mobile */}
+          {/* Mobile volume */}
           <div className="flex md:hidden items-center gap-2 w-full px-1">
             <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
             <Slider

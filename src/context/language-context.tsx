@@ -82,7 +82,7 @@ const translations: Translations = {
     askAI: "Ask AI",
     askAIDescription: "Get music recommendations powered by AI",
     askAIPlaceholder: "Ask for music recommendations...",
-    aiWelcomeMessage: "Hi! I can help you discover new music. What would you like to listen to?",
+    aiWelcomeMessage: "Hi! I can help you discover new music. What genre would you like to listen to?",
     
     // Settings
     appearance: "Appearance",

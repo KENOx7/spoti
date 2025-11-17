@@ -61,7 +61,7 @@ export default function SettingsView() {
               <SelectValue placeholder={t("language")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="en">🇬🇧 English</SelectItem>
+              <SelectItem value="en">ᴇɴ English</SelectItem>
               <SelectItem value="az">🇦🇿 Azərbaycanca</SelectItem>
             </SelectContent>
           </Select>
