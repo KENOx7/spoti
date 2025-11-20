@@ -18,8 +18,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState<boolean>(false);
-  
-  // Başlanğıcda true edirik ki, yoxlama bitənə qədər heç kimi bayıra atmasın
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -27,29 +25,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const guestStatus = localStorage.getItem("guest_mode") === "true";
     if (guestStatus) setIsGuest(true);
 
-    // 2. URL-də Spotify/Google kodu varmı? (Redirect yoxlanışı)
-    // Əgər URL-də 'code' və ya 'access_token' varsa, deməli OAuth-dan qayıdırıq.
-    // Bu halda isLoading-i FALSE etməyə tələsmirik!
+    // 2. URL-də OAuth kodu varmı?
     const isRedirecting = window.location.hash.includes('access_token') || 
-                          window.location.search.includes('code') ||
-                          window.location.hash.includes('type=recovery');
+                          window.location.search.includes('code');
 
     // 3. Auth yoxlanışı
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      // Əgər Redirect baş verirsə, isLoading-i true saxla (onAuthStateChange həll edəcək)
-      // Əgər adi girişdirsə, isLoading-i bitir.
-      if (!isRedirecting) {
-        setIsLoading(false);
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Auth check error:", error);
+      } finally {
+        // Əgər redirect yoxdursa, dərhal aç
+        if (!isRedirecting) {
+          setIsLoading(false);
+        }
       }
-    });
+    };
+
+    checkAuth();
 
     // 4. Dəyişiklikləri dinlə
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        // Login uğurlu olduqda və ya bitdikdə:
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -57,16 +57,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsGuest(false);
           localStorage.removeItem("guest_mode");
         }
-
-        // ƏN VACİB HİSSƏ: Auth prosesi bitən kimi yüklənməni dayandır
-        setIsLoading(false); 
+        // Hadisə baş verən kimi yüklənməni dayandır
+        setIsLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    // --- YENİ HİSSƏ: TƏHLÜKƏSİZLİK TİMEOUT-U ---
+    // Telefonda ilişib qalmaması üçün 4 saniyədən sonra məcburi açırıq
+    const safetyTimer = setTimeout(() => {
+      setIsLoading((prev) => {
+        if (prev) {
+           console.log("Safety timeout triggered: Forcing app open");
+           return false;
+        }
+        return prev;
+      });
+    }, 4000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
   const signOut = async () => {
+    setIsLoading(true); // Çıxış edəndə qısa loading göstər
     await supabase.auth.signOut();
     setIsGuest(false);
     localStorage.removeItem("guest_mode");
