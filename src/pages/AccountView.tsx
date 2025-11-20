@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, LogOut, Mail, Shield, LogIn, AlertCircle } from "lucide-react";
+import { User, LogOut, Mail, Shield, LogIn, AlertCircle, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,8 +20,59 @@ export default function AccountView() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false); // Şəkil yüklənmə statusu
 
-  // Qonaq Rejimi
+  // --- ŞƏKİL YÜKLƏMƏ FUNKSİYASI ---
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+      
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      setIsUploading(true);
+
+      // 1. Şəkli Supabase Storage-ə yükləyirik
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Şəklin Public URL-ni alırıq
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // 3. İstifadəçinin profilini yeniləyirik (avatar_url)
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+      });
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Uğurlu!",
+        description: t("avatarUpdated") || "Profil şəkli yeniləndi!",
+      });
+
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        variant: "destructive",
+        title: "Xəta",
+        description: error.message || t("uploadError") || "Şəkil yüklənərkən xəta oldu.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // --- QONAQ REJİMİ ---
   if (isGuest) {
     return (
       <div className="p-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 mt-10">
@@ -60,7 +111,7 @@ export default function AccountView() {
     );
   }
 
-  // Real İstifadəçi
+  // --- REAL İSTİFADƏÇİ ---
   const handlePasswordChange = async () => {
     if (newPassword.length < 6) {
       toast({ variant: "destructive", title: "Xəta", description: "Şifrə ən az 6 simvol olmalıdır." });
@@ -95,27 +146,64 @@ export default function AccountView() {
       </div>
 
       <div className="space-y-6">
-        {/* Profil Məlumatı */}
+        
+        {/* PROFIL KARTI (Şəkil dəyişdirmə ilə) */}
         <div className="p-6 bg-card rounded-lg border border-border flex flex-col sm:flex-row items-start sm:items-center gap-6 shadow-sm">
-          <Avatar className="h-20 w-20 border-2 border-primary/20">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-              {(user?.email?.[0] || "U").toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold">{user?.user_metadata?.full_name || user?.email?.split("@")[0]}</h2>
+          
+          {/* AVATAR HİSSƏSİ */}
+          <div className="relative group">
+            <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-background shadow-xl cursor-pointer transition-transform group-hover:scale-105">
+              <AvatarImage src={user?.user_metadata?.avatar_url} className="object-cover" />
+              <AvatarFallback className="text-3xl font-bold bg-primary/10 text-primary">
+                {(user?.email?.[0] || "U").toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+
+            {/* Yükləmə Overlay-i */}
+            <label 
+              htmlFor="avatar-upload" 
+              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            >
+              {isUploading ? (
+                <Loader2 className="h-8 w-8 text-white animate-spin" />
+              ) : (
+                <Camera className="h-8 w-8 text-white" />
+              )}
+            </label>
+            
+            {/* Gizli Input */}
+            <input 
+              type="file" 
+              id="avatar-upload" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={handleAvatarUpload}
+              disabled={isUploading}
+            />
+          </div>
+
+          <div className="space-y-1 flex-1">
+            <h2 className="text-2xl font-semibold">
+              {user?.user_metadata?.full_name || user?.email?.split("@")[0]}
+            </h2>
             <div className="flex items-center text-muted-foreground">
               <Mail className="h-4 w-4 mr-2" /> {user?.email}
             </div>
-            <div className="flex items-center text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded w-fit mt-2">
-              <Shield className="h-3 w-3 mr-1" /> 
-              {user?.app_metadata?.provider === 'email' ? "Email" : providerName}
+            
+            <div className="flex flex-wrap gap-2 mt-2">
+               <div className="flex items-center text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded w-fit">
+                <Shield className="h-3 w-3 mr-1" /> 
+                {user?.app_metadata?.provider === 'email' ? t("emailAccount") : t("socialAccount")}
+              </div>
+              <label htmlFor="avatar-upload" className="text-xs font-medium bg-secondary hover:bg-secondary/80 px-3 py-1 rounded cursor-pointer transition-colors">
+                 {t("changeAvatar") || "Şəkli Dəyiş"}
+              </label>
             </div>
+
           </div>
         </div>
 
-        {/* Şifrə Dəyişmə (Email üçünsə göstər, Sosial üçünsə Xəbərdarlıq) */}
+        {/* Şifrə Dəyişmə */}
         {user?.app_metadata?.provider === 'email' ? (
           <div className="p-6 bg-card rounded-lg border border-border space-y-4 shadow-sm">
             <div>
@@ -139,7 +227,7 @@ export default function AccountView() {
         ) : (
           <Alert>
              <AlertCircle className="h-4 w-4" />
-             <AlertTitle>{t("socialLoginInfo")}</AlertTitle>
+             <AlertTitle>{t("info")}</AlertTitle>
              <AlertDescription>
                {t("socialLoginMessage").replace("{provider}", providerName)}
              </AlertDescription>
