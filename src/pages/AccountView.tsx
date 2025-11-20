@@ -21,7 +21,7 @@ export default function AccountView() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- QONAQ REJİMİ (Tərcüməli) ---
+  // Qonaq Rejimi
   if (isGuest) {
     return (
       <div className="p-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 mt-10">
@@ -60,7 +60,7 @@ export default function AccountView() {
     );
   }
 
-  // --- REAL İSTİFADƏÇİ ---
+  // Real İstifadəçi
   const handlePasswordChange = async () => {
     if (newPassword.length < 6) {
       toast({ variant: "destructive", title: "Xəta", description: "Şifrə ən az 6 simvol olmalıdır." });
@@ -85,14 +85,17 @@ export default function AccountView() {
     }
   };
 
+  const providerName = user?.app_metadata?.provider || "social";
+
   return (
     <div className="p-6 pb-24 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight mb-2">{t("settings")}</h1>
-        <p className="text-muted-foreground">Profil məlumatlarınızı idarə edin</p>
+        <p className="text-muted-foreground">{t("manageProfile")}</p>
       </div>
 
       <div className="space-y-6">
+        {/* Profil Məlumatı */}
         <div className="p-6 bg-card rounded-lg border border-border flex flex-col sm:flex-row items-start sm:items-center gap-6 shadow-sm">
           <Avatar className="h-20 w-20 border-2 border-primary/20">
             <AvatarImage src={user?.user_metadata?.avatar_url} />
@@ -107,16 +110,17 @@ export default function AccountView() {
             </div>
             <div className="flex items-center text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded w-fit mt-2">
               <Shield className="h-3 w-3 mr-1" /> 
-              {user?.app_metadata?.provider === 'email' ? 'Email Hesabı' : 'Social Hesab'}
+              {user?.app_metadata?.provider === 'email' ? "Email" : providerName}
             </div>
           </div>
         </div>
 
+        {/* Şifrə Dəyişmə (Email üçünsə göstər, Sosial üçünsə Xəbərdarlıq) */}
         {user?.app_metadata?.provider === 'email' ? (
           <div className="p-6 bg-card rounded-lg border border-border space-y-4 shadow-sm">
             <div>
-              <h2 className="text-xl font-semibold mb-1">Təhlükəsizlik</h2>
-              <p className="text-sm text-muted-foreground">Şifrənizi yeniləyin</p>
+              <h2 className="text-xl font-semibold mb-1">{t("security")}</h2>
+              <p className="text-sm text-muted-foreground">{t("updatePassword")}</p>
             </div>
             <div className="grid gap-4 max-w-md">
               <div className="space-y-2">
@@ -128,24 +132,25 @@ export default function AccountView() {
                 <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" />
               </div>
               <Button variant="outline" onClick={handlePasswordChange} disabled={isLoading}>
-                {isLoading ? "Yenilənir..." : t("changePassword")}
+                {isLoading ? "..." : t("changePassword")}
               </Button>
             </div>
           </div>
         ) : (
           <Alert>
              <AlertCircle className="h-4 w-4" />
-             <AlertTitle>Məlumat</AlertTitle>
+             <AlertTitle>{t("socialLoginInfo")}</AlertTitle>
              <AlertDescription>
-               Siz sosial şəbəkə ({user?.app_metadata?.provider}) ilə daxil olduğunuz üçün şifrəni buradan dəyişə bilməzsiniz.
+               {t("socialLoginMessage").replace("{provider}", providerName)}
              </AlertDescription>
           </Alert>
         )}
 
+        {/* Çıxış */}
         <div className="p-6 bg-card/50 rounded-lg border border-destructive/20 flex justify-between items-center">
            <div>
              <h2 className="text-lg font-semibold text-destructive">{t("logoutTitle")}</h2>
-             <p className="text-sm text-muted-foreground">Cari sessiyanı sonlandırın</p>
+             <p className="text-sm text-muted-foreground">{t("logoutDescription")}</p>
            </div>
            <Button variant="destructive" onClick={signOut}>
              <LogOut className="mr-2 h-4 w-4" /> {t("logout")}

@@ -10,7 +10,6 @@ interface Translations {
 
 const translations: Translations = {
   en: {
-    // Navigation & Common
     home: "Home",
     charts: "Charts",
     likedSongs: "Liked Songs",
@@ -21,8 +20,6 @@ const translations: Translations = {
     settings: "Settings",
     askAI: "Ask AI",
     appName: "Music",
-    
-    // Auth & Login
     welcomeBack: "Welcome Back",
     enterMusicWorld: "Enter the world of music",
     continueWithGoogle: "Continue with Google",
@@ -40,50 +37,33 @@ const translations: Translations = {
     welcomeUser: "Welcome",
     guest: "Guest",
     
-    // Guest Account Specific (YENİ)
+    // YENİ ƏLAVƏLƏR
+    manageProfile: "Manage your profile information",
+    security: "Security",
+    updatePassword: "Update your password",
+    newPassword: "New Password",
+    changePassword: "Change Password",
+    logoutTitle: "Logout",
+    logoutDescription: "End your current session",
+    logout: "Logout",
+    socialLoginInfo: "Info",
+    socialLoginMessage: "Since you logged in via a social network ({provider}), you cannot change your password here.",
     guestAccount: "Guest Account",
     guestMessage: "You are currently in Guest mode. Please log in to save your playlists and access all features.",
     loginOrSignup: "Login / Sign Up",
     endSession: "End Session",
     
-    // Player
+    // Player & Common
     play: "Play",
     pause: "Pause",
     next: "Next",
     previous: "Previous",
-    volume: "Volume",
-    shuffle: "Shuffle",
-    repeat: "Repeat",
-    repeatAll: "Repeat All",
-    repeatOne: "Repeat One",
-    repeatOff: "Repeat Off",
-    
-    // Common
     search: "Search",
-    songs: "songs",
-    song: "song",
-    playAll: "Play All",
     trending: "Trending Now",
-    recentlyPlayed: "Recently Played",
     myPlaylists: "My Playlists",
-    recommended: "Recommended for You",
-    discover: "Discover",
-    
-    // Playlists
     createPlaylist: "Create Playlist",
     playlistName: "Playlist Name",
-    playlistDescription: "Description (optional)",
-    emptyPlaylist: "This playlist is empty",
-    addSongsToPlaylist: "Add songs to this playlist using the menu on any track",
-    
-    // Account & Settings
     profileSaved: "Profile information saved.",
-    oldPassword: "Old Password",
-    newPassword: "New Password",
-    changePassword: "Change Password",
-    enterOldPassword: "Please enter your old password.",
-    logoutTitle: "Logout",
-    logout: "Logout",
     language: "Language",
     appearance: "Appearance",
     notifications: "Notifications",
@@ -91,7 +71,6 @@ const translations: Translations = {
     artistUpdates: "Artist Updates"
   },
   az: {
-    // Naviqasiya
     home: "Ana Səhifə",
     charts: "Hitlər",
     likedSongs: "Bəyənilənlər",
@@ -102,8 +81,6 @@ const translations: Translations = {
     settings: "Tənzimləmələr",
     askAI: "AI-dan Soruş",
     appName: "Musiqi",
-
-    // Giriş & Qeydiyyat
     welcomeBack: "Xoş Gəlmisiniz",
     enterMusicWorld: "Devora musiqi dünyasına daxil olun",
     continueWithGoogle: "Google ilə davam et",
@@ -121,50 +98,33 @@ const translations: Translations = {
     welcomeUser: "Xoş gördük",
     guest: "Qonaq",
 
-    // Qonaq Hesabı (YENİ)
+    // YENİ ƏLAVƏLƏR
+    manageProfile: "Profil məlumatlarınızı idarə edin",
+    security: "Təhlükəsizlik",
+    updatePassword: "Şifrənizi yeniləyin",
+    newPassword: "Yeni Şifrə",
+    changePassword: "Şifrəni Dəyiş",
+    logoutTitle: "Çıxış",
+    logoutDescription: "Cari sessiyanı sonlandırın",
+    logout: "Çıxış et",
+    socialLoginInfo: "Məlumat",
+    socialLoginMessage: "Siz sosial şəbəkə ({provider}) ilə daxil olduğunuz üçün şifrəni buradan dəyişə bilməzsiniz.",
     guestAccount: "Qonaq Hesabı",
     guestMessage: "Siz hazırda Qonaq rejimindəsiniz. Pleylistlərinizi yadda saxlamaq və bütün funksiyalardan istifadə etmək üçün zəhmət olmasa daxil olun.",
     loginOrSignup: "Daxil ol / Qeydiyyat",
     endSession: "Sessiyanı Bitir",
 
-    // Pleyer
+    // Pleyer & Ümumi
     play: "Oynat",
     pause: "Durdur",
     next: "Növbəti",
     previous: "Əvvəlki",
-    volume: "Səs",
-    shuffle: "Qarışıq",
-    repeat: "Təkrar",
-    repeatAll: "Hamısını təkrarla",
-    repeatOne: "Birini təkrarla",
-    repeatOff: "Təkrarı söndür",
-
-    // Ümumi
     search: "Axtarış",
-    songs: "mahnı",
-    song: "mahnı",
-    playAll: "Hamısını Oynat",
     trending: "Trendlər",
-    recentlyPlayed: "Son Oynadılanlar",
     myPlaylists: "Pleylistlərim",
-    recommended: "Sizin üçün",
-    discover: "Kəşf et",
-
-    // Pleylistlər
     createPlaylist: "Pleylist Yarat",
     playlistName: "Pleylist Adı",
-    playlistDescription: "Açıqlama (könüllü)",
-    emptyPlaylist: "Bu pleylist boşdur",
-    addSongsToPlaylist: "Mahnı menyusundan istifadə edərək bura mahnı əlavə edin",
-
-    // Hesab & Tənzimləmələr
     profileSaved: "Profil məlumatları yadda saxlanıldı.",
-    oldPassword: "Köhnə Şifrə",
-    newPassword: "Yeni Şifrə",
-    changePassword: "Şifrəni Dəyiş",
-    enterOldPassword: "Zəhmət olmasa köhnə şifrəni daxil edin.",
-    logoutTitle: "Çıxış",
-    logout: "Çıxış et",
     language: "Dil",
     appearance: "Görünüş",
     notifications: "Bildirişlər",
