@@ -9,7 +9,7 @@ import { Mail, Lock, Music, Chrome, User, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Arxa fon şəkli
-const backgroundImage = new URL("../Raper album cover.jpg", import.meta.url).href;
+const backgroundImage = new URL("Raper album cover.jpg", import.meta.url).href;
 
 export default function LoginView() {
   const { isAuthenticated, continueAsGuest } = useAuth();
@@ -216,3 +216,4 @@ export default function LoginView() {
     </div>
   );
 }
+
