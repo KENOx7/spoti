@@ -68,7 +68,11 @@ const translations: Translations = {
     appearance: "Appearance",
     notifications: "Notifications",
     newReleases: "New Releases",
-    artistUpdates: "Artist Updates"
+    artistUpdates: "Artist Updates",
+    uploading: "Uploading...",
+    avatarUpdated: "Profile picture updated successfully!",
+    uploadError: "Error uploading image.",
+    changeAvatar: "Change Photo"
   },
   az: {
     home: "Ana Səhifə",
@@ -129,7 +133,11 @@ const translations: Translations = {
     appearance: "Görünüş",
     notifications: "Bildirişlər",
     newReleases: "Yeni Çıxışlar",
-    artistUpdates: "Sənətçi Yenilikləri"
+    artistUpdates: "Sənətçi Yenilikləri",
+    uploading: "Yüklənir...",
+    avatarUpdated: "Profil şəkli yeniləndi!",
+    uploadError: "Şəkil yüklənərkən xəta baş verdi.",
+    changeAvatar: "Şəkli Dəyiş"
   },
 };
 
