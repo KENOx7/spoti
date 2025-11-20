@@ -10,7 +10,7 @@ interface Translations {
 
 const translations: Translations = {
   en: {
-    // Navigation
+    // Navigation & Common
     home: "Home",
     charts: "Charts",
     likedSongs: "Liked Songs",
@@ -21,6 +21,30 @@ const translations: Translations = {
     settings: "Settings",
     askAI: "Ask AI",
     appName: "Music",
+    
+    // Auth & Login
+    welcomeBack: "Welcome Back",
+    enterMusicWorld: "Enter the world of music",
+    continueWithGoogle: "Continue with Google",
+    continueWithSpotify: "Continue with Spotify",
+    orEmail: "OR CONTINUE WITH EMAIL",
+    email: "Email",
+    password: "Password",
+    confirmPassword: "Confirm Password",
+    signIn: "Sign In",
+    signUp: "Sign Up",
+    createAccount: "Create Account",
+    noAccount: "Don't have an account?",
+    haveAccount: "Already have an account?",
+    guestContinue: "Continue as Guest",
+    welcomeUser: "Welcome",
+    guest: "Guest",
+    
+    // Guest Account Specific (YENİ)
+    guestAccount: "Guest Account",
+    guestMessage: "You are currently in Guest mode. Please log in to save your playlists and access all features.",
+    loginOrSignup: "Login / Sign Up",
+    endSession: "End Session",
     
     // Player
     play: "Play",
@@ -39,8 +63,6 @@ const translations: Translations = {
     songs: "songs",
     song: "song",
     playAll: "Play All",
-    
-    // Home Page
     trending: "Trending Now",
     recentlyPlayed: "Recently Played",
     myPlaylists: "My Playlists",
@@ -52,191 +74,102 @@ const translations: Translations = {
     playlistName: "Playlist Name",
     playlistDescription: "Description (optional)",
     emptyPlaylist: "This playlist is empty",
-    addSongsToPlaylist: "Add songs to this playlist using the menu on any track.",
-    tracks: "tracks",
-    track: "track",
+    addSongsToPlaylist: "Add songs to this playlist using the menu on any track",
     
-    // Liked Songs
-    noLikedSongs: "You haven't liked any songs yet",
-    likedSongsDescription: "Songs you like will appear here. Click the heart icon on any track to add it.",
-    
-    // Actions
-    addToPlaylist: "Add to Playlist",
-    removeFromPlaylist: "Remove from Playlist",
-    like: "Like",
-    unlike: "Unlike",
-    delete: "Delete",
-    save: "Save",
-    cancel: "Cancel",
-    
-    // Messages
-    playlistCreated: "Playlist created successfully",
-    playlistDeleted: "Playlist deleted",
-    trackAdded: "Track added to playlist",
-    trackRemoved: "Track removed from playlist",
-    trackAlreadyInPlaylist: "Track is already in this playlist",
-    error: "An error occurred",
-    tryAgain: "Please try again",
-    
-    // AI
-    askAI: "Ask AI",
-    askAIDescription: "Get music recommendations powered by AI",
-    askAIPlaceholder: "Ask for music recommendations...",
-    aiWelcomeMessage: "Hi! I can help you discover new music. What genre would you like to listen to?",
-    
-    // Settings
-    appearance: "Appearance",
-    darkMode: "Dark Mode",
-    language: "Language",
-    notifications: "Notifications",
-    newReleases: "New Releases",
-    artistUpdates: "Artist Updates",
-    
-    // Empty States
-    noPlaylists: "No playlists yet",
-    noPlaylistsDescription: "Create your first playlist to organize your favorite tracks.",
-    noTracks: "No tracks found",
-    
-    // Recently Added
-    recentlyAdded: "Recently Added",
-    recentlyAddedDescription: "Tracks you've recently liked or added to playlists",
-
-    // Account Page (BU HİSSƏNİ ƏLAVƏ EDİN)
-    accountSubtitle: "Manage your account details and settings.",
-    profileInfo: "Profile Information",
-    changePhoto: "Change Photo",
-    username: "Username",
-    email: "Email",
-    saveChanges: "Save Changes",
-    security: "Security",
+    // Account & Settings
+    profileSaved: "Profile information saved.",
     oldPassword: "Old Password",
     newPassword: "New Password",
-    confirmPassword: "Confirm New Password",
     changePassword: "Change Password",
-    logoutTitle: "Log Out",
-    logoutButton: "Log Out",
-    
-    // Alerts (Bildirişlər üçün)
     enterOldPassword: "Please enter your old password.",
-    shortPassword: "New password must be at least 6 characters.",
-    passwordMismatch: "New passwords do not match.",
-    passwordChanged: "Password changed successfully.",
-    profileSaved: "Profile information saved.",
-    loggedOut: "Logged out successfully."
+    logoutTitle: "Logout",
+    logout: "Logout",
+    language: "Language",
+    appearance: "Appearance",
+    notifications: "Notifications",
+    newReleases: "New Releases",
+    artistUpdates: "Artist Updates"
   },
   az: {
-    // Navigation
-    home: "Əsas Səhifə",
-    charts: "Hit Parad",
-    likedSongs: "Bəyəndiklərim",
+    // Naviqasiya
+    home: "Ana Səhifə",
+    charts: "Hitlər",
+    likedSongs: "Bəyənilənlər",
     collections: "Kolleksiyalar",
-    recentlyAdded: "Yeni Əlavə Edilənlər",
-    makePlaylist: "Playlist Yarat",
-    account: "Hesabım",
+    recentlyAdded: "Yeni Əlavələr",
+    makePlaylist: "Pleylist Yarat",
+    account: "Hesab",
     settings: "Tənzimləmələr",
     askAI: "AI-dan Soruş",
     appName: "Musiqi",
-    
-    // Player
-    play: "Oxut",
-    pause: "Dayandır",
+
+    // Giriş & Qeydiyyat
+    welcomeBack: "Xoş Gəlmisiniz",
+    enterMusicWorld: "Devora musiqi dünyasına daxil olun",
+    continueWithGoogle: "Google ilə davam et",
+    continueWithSpotify: "Spotify ilə davam et",
+    orEmail: "VƏ YA EMAİL İLƏ",
+    email: "Email",
+    password: "Şifrə",
+    confirmPassword: "Şifrəni Təsdiqlə",
+    signIn: "Daxil ol",
+    signUp: "Qeydiyyat",
+    createAccount: "Hesab Yarat",
+    noAccount: "Hesabınız yoxdur?",
+    haveAccount: "Artıq hesabınız var?",
+    guestContinue: "Qonaq kimi davam et",
+    welcomeUser: "Xoş gördük",
+    guest: "Qonaq",
+
+    // Qonaq Hesabı (YENİ)
+    guestAccount: "Qonaq Hesabı",
+    guestMessage: "Siz hazırda Qonaq rejimindəsiniz. Pleylistlərinizi yadda saxlamaq və bütün funksiyalardan istifadə etmək üçün zəhmət olmasa daxil olun.",
+    loginOrSignup: "Daxil ol / Qeydiyyat",
+    endSession: "Sessiyanı Bitir",
+
+    // Pleyer
+    play: "Oynat",
+    pause: "Durdur",
     next: "Növbəti",
     previous: "Əvvəlki",
     volume: "Səs",
-    shuffle: "Qarışdır",
-    repeat: "Təkrarla",
-    repeatAll: "Hamısını Təkrarla",
-    repeatOne: "Birini Təkrarla",
-    repeatOff: "Təkrarla Yox",
-    
-    // Common
-    search: "Axtar",
+    shuffle: "Qarışıq",
+    repeat: "Təkrar",
+    repeatAll: "Hamısını təkrarla",
+    repeatOne: "Birini təkrarla",
+    repeatOff: "Təkrarı söndür",
+
+    // Ümumi
+    search: "Axtarış",
     songs: "mahnı",
     song: "mahnı",
-    playAll: "Hamısını Oxut",
-    
-    // Home Page
-    trending: "Populyar",
-    recentlyPlayed: "Son Oxunmuşlar",
-    myPlaylists: "Playlistlərim",
-    recommended: "Sizin Üçün Tövsiyə Olunanlar",
-    discover: "Kəşf Et",
-    
-    // Playlists
-    createPlaylist: "Playlist Yarat",
-    playlistName: "Playlist Adı",
-    playlistDescription: "Təsvir (könüllü)",
-    emptyPlaylist: "Bu playlist boşdur",
-    addSongsToPlaylist: "Hər hansı mahnıdakı menyudan istifadə edərək bu playlistə mahnı əlavə edin.",
-    tracks: "mahnı",
-    track: "mahnı",
-    
-    // Liked Songs
-    noLikedSongs: "Hələ bəyəndiyiniz mahnı yoxdur",
-    likedSongsDescription: "Bəyəndiyiniz mahnılar burada görünəcək. Hər hansı mahnıdakı ürək ikonuna klikləyin.",
-    
-    // Actions
-    addToPlaylist: "Playlistə Əlavə Et",
-    removeFromPlaylist: "Playlistdən Çıxar",
-    like: "Bəyən",
-    unlike: "Bəyənməkdən Çıx",
-    delete: "Sil",
-    save: "Saxla",
-    cancel: "Ləğv Et",
-    
-    // Messages
-    playlistCreated: "Playlist uğurla yaradıldı",
-    playlistDeleted: "Playlist silindi",
-    trackAdded: "Mahnı playlistə əlavə edildi",
-    trackRemoved: "Mahnı playlistdən çıxarıldı",
-    trackAlreadyInPlaylist: "Mahnı artıq bu playlistdədir",
-    error: "Xəta baş verdi",
-    tryAgain: "Zəhmət olmasa yenidən cəhd edin",
-    
-    // AI
-    askAI: "AI-dan Soruş",
-    askAIDescription: "AI ilə gücləndirilmiş musiqi tövsiyələri alın",
-    askAIPlaceholder: "Musiqi tövsiyələri üçün soruşun...",
-    aiWelcomeMessage: "Salam! Yeni musiqi kəşf etməkdə kömək edə bilərəm. Nə tərz musiqi dinləmək istəyirsiniz?",
-    
-    // Settings
-    appearance: "Görünüş",
-    darkMode: "Qaranlıq Mod",
-    language: "Dil",
-    notifications: "Bildirişlər",
-    newReleases: "Yeni Mahnılar",
-    artistUpdates: "Sənətçi Yeniləmələri",
-    
-    // Empty States
-    noPlaylists: "Hələ playlist yoxdur",
-    noPlaylistsDescription: "Sevimli mahnılarınızı təşkil etmək üçün ilk playlistinizi yaradın.",
-    noTracks: "Mahnı tapılmadı",
-    
-    // Recently Added
-    recentlyAdded: "Yeni Əlavə Edilənlər",
-    recentlyAddedDescription: "Son bəyəndiyiniz və ya playlistə əlavə etdiyiniz mahnılar",
+    playAll: "Hamısını Oynat",
+    trending: "Trendlər",
+    recentlyPlayed: "Son Oynadılanlar",
+    myPlaylists: "Pleylistlərim",
+    recommended: "Sizin üçün",
+    discover: "Kəşf et",
 
-    accountSubtitle: "Hesab məlumatlarınızı və parametrlərinizi idarə edin.",
-    profileInfo: "Profil Məlumatları",
-    changePhoto: "Şəkli Dəyiş",
-    username: "İstifadəçi Adı",
-    email: "E-poçt",
-    saveChanges: "Dəyişiklikləri Yadda Saxla",
-    security: "Təhlükəsizlik",
+    // Pleylistlər
+    createPlaylist: "Pleylist Yarat",
+    playlistName: "Pleylist Adı",
+    playlistDescription: "Açıqlama (könüllü)",
+    emptyPlaylist: "Bu pleylist boşdur",
+    addSongsToPlaylist: "Mahnı menyusundan istifadə edərək bura mahnı əlavə edin",
+
+    // Hesab & Tənzimləmələr
+    profileSaved: "Profil məlumatları yadda saxlanıldı.",
     oldPassword: "Köhnə Şifrə",
     newPassword: "Yeni Şifrə",
-    confirmPassword: "Yeni Şifrə (Təkrar)",
     changePassword: "Şifrəni Dəyiş",
-    logoutTitle: "Hesabdan Çıxış",
-    logoutButton: "Çıxış Et",
-
-    // Alerts (Bildirişlər üçün)
-    enterOldPassword: "Köhnə şifrəni daxil edin.",
-    shortPassword: "Yeni şifrə ən az 6 simvol olmalıdır.",
-    passwordMismatch: "Yeni şifrə və təkrar uyğun deyil.",
-    passwordChanged: "Şifrə dəyişdirildi.",
-    profileSaved: "Profil məlumatları yadda saxlanıldı.",
-    loggedOut: "Hesabdan çıxış edildi."
+    enterOldPassword: "Zəhmət olmasa köhnə şifrəni daxil edin.",
+    logoutTitle: "Çıxış",
+    logout: "Çıxış et",
+    language: "Dil",
+    appearance: "Görünüş",
+    notifications: "Bildirişlər",
+    newReleases: "Yeni Çıxışlar",
+    artistUpdates: "Sənətçi Yenilikləri"
   },
 };
 
@@ -248,7 +181,6 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// Get initial language from localStorage or default to Azerbaijani
 const getInitialLanguage = (): Language => {
   try {
     const saved = localStorage.getItem("appLanguage");
@@ -261,7 +193,6 @@ const getInitialLanguage = (): Language => {
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage());
 
-  // Save language preference
   useEffect(() => {
     try {
       localStorage.setItem("appLanguage", language);
@@ -288,7 +219,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (!context) {
-    throw new Error("useLanguage must be used within LanguageProvider");
+    throw new Error("useLanguage must be used within a LanguageProvider");
   }
   return context;
 }

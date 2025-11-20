@@ -5,52 +5,57 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Music, Chrome, User, ArrowRight } from "lucide-react";
+import { Mail, Lock, Music, Chrome, User, ArrowRight, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/context/language-context";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Arxa fon şəkli
-const backgroundImage = new URL("Raper album cover.jpg", import.meta.url).href;
+// Şəkil
+const backgroundImage = new URL("./Raper album cover.jpg", import.meta.url).href;
 
 export default function LoginView() {
   const { isAuthenticated, continueAsGuest } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t, language, setLanguage } = useLanguage();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Əgər istifadəçi artıq giriş edibsə, Ana səhifəyə at
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
-  // --- SOCIAL LOGIN (Google & Spotify) ---
   const handleSocialLogin = async (provider: "google" | "spotify") => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          // Bu kod avtomatik olaraq olduğu yeri (Localhost və ya Vercel) təyin edir
-          redirectTo: window.location.origin, 
+          redirectTo: window.location.origin,
         },
       });
       if (error) throw error;
     } catch (error: any) {
-      console.error("Login xətası:", error);
+      console.error("Login Error:", error);
       toast({
         variant: "destructive",
-        title: "Giriş Xətası",
-        description: error.message || "Bilinməyən xəta baş verdi.",
+        title: "Xəta",
+        description: error.message,
       });
       setIsLoading(false);
     }
   };
 
-  // --- EMAIL LOGIN ---
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -64,11 +69,7 @@ export default function LoginView() {
 
       if (error) throw error;
 
-      toast({
-        title: "Uğurlu!",
-        description: "Xoş gəldiniz.",
-      });
-      // Yönləndirməni AuthContext avtomatik edəcək (useEffect ilə)
+      toast({ title: "Uğurlu!", description: "Xoş gəldiniz." });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -80,7 +81,6 @@ export default function LoginView() {
     }
   };
 
-  // --- QONAQ GİRİŞİ ---
   const handleGuestLogin = () => {
     continueAsGuest();
     navigate("/");
@@ -88,7 +88,21 @@ export default function LoginView() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center relative overflow-hidden">
-      {/* Arxa Fon Şəkli */}
+      {/* DÜZƏLİŞ: DİL DÜYMƏSİ (z-50) */}
+      <div className="absolute top-4 right-4 z-50">
+        <Select value={language} onValueChange={(val: "en" | "az") => setLanguage(val)}>
+          <SelectTrigger className="w-[150px] bg-black/40 backdrop-blur-md border-white/20 text-white hover:bg-black/60">
+             <Globe className="w-4 h-4 mr-2" />
+             <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="en">English</SelectItem>
+            <SelectItem value="az">Azərbaycanca</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Arxa Fon */}
       <div
         className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url("${backgroundImage}")` }}
@@ -96,20 +110,18 @@ export default function LoginView() {
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       </div>
 
-      {/* Login Kartı */}
       <div className="relative z-10 w-full max-w-md px-6 animate-in fade-in zoom-in duration-300">
         <div className="bg-card/90 backdrop-blur-md border border-border/50 rounded-2xl shadow-2xl p-8">
           
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">
-              Xoş Gəlmisiniz
+              {t("welcomeBack")}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Devora musiqi dünyasına daxil olun
+              {t("enterMusicWorld")}
             </p>
           </div>
 
-          {/* Social Düymələr */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <Button 
               variant="outline" 
@@ -139,15 +151,14 @@ export default function LoginView() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background/50 px-2 text-muted-foreground rounded backdrop-blur-sm">
-                və ya email ilə
+                {t("orEmail")}
               </span>
             </div>
           </div>
 
-          {/* Email Formu */}
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("email")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -164,7 +175,7 @@ export default function LoginView() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Şifrə</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -185,11 +196,10 @@ export default function LoginView() {
               className="w-full h-12 text-base font-medium mt-2 bg-primary hover:bg-primary/90"
               disabled={isLoading}
             >
-              {isLoading ? "Giriş edilir..." : "Daxil ol"}
+              {isLoading ? "..." : t("signIn")}
             </Button>
           </form>
 
-          {/* Qonaq Düyməsi */}
           <Button
             type="button"
             variant="ghost"
@@ -198,16 +208,16 @@ export default function LoginView() {
             disabled={isLoading}
           >
             <User className="mr-2 h-4 w-4" />
-            Qonaq kimi davam et
+            {t("guestContinue")}
           </Button>
 
           <div className="mt-6 pt-4 border-t border-border/30 text-center text-sm">
-             Hesabınız yoxdur?{" "}
+            {t("noAccount")}{" "}
             <Link 
               to="/signup" 
               className="text-primary hover:text-primary/80 font-semibold transition-all inline-flex items-center ml-1"
             >
-              Qeydiyyatdan keçin <ArrowRight className="ml-1 h-3 w-3" />
+              {t("signUp")} <ArrowRight className="ml-1 h-3 w-3" />
             </Link>
           </div>
 
@@ -216,4 +226,3 @@ export default function LoginView() {
     </div>
   );
 }
-
