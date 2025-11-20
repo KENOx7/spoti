@@ -44,29 +44,25 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// YENİLƏNMİŞ ProtectedRoute
+// src/App.tsx içindəki ProtectedRoute hissəsi:
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isGuest, isLoading } = useAuth();
 
-  // 1. Yüklənmə ekranı (Spotify-dan qayıdanda bu görsənəcək)
+  // 1. Əgər hələ yüklənirsə (və ya Spotify-dan qayıdırsa) Spinner göstər
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
-        <div className="flex flex-col items-center gap-4">
-          {/* Sadə bir spinner və ya mətn */}
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-muted-foreground">Yüklənir...</p>
-        </div>
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
   
-  // 2. Yüklənmə bitdi, amma istifadəçi yoxdursa Loginə at
+  // 2. Yüklənmə bitdi, amma adam yoxdursa -> Loginə at
   if (!isAuthenticated && !isGuest) {
     return <Navigate to="/login" replace />;
   }
 
-  // 3. Hər şey qaydasındadırsa səhifəni aç
   return <AppLayout>{children}</AppLayout>;
 };
 
