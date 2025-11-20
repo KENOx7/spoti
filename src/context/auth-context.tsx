@@ -25,69 +25,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const guestStatus = localStorage.getItem("guest_mode") === "true";
     if (guestStatus) setIsGuest(true);
 
-    // 2. URL-də OAuth kodu varmı?
-    const isRedirecting = window.location.hash.includes('access_token') || 
-                          window.location.search.includes('code');
-
-    // 3. Auth yoxlanışı
-    const checkAuth = async () => {
+    // 2. Sessiyanı yoxla
+    const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
       } catch (error) {
-        console.error("Auth check error:", error);
+        console.error("Auth error:", error);
       } finally {
-        // Əgər redirect yoxdursa, dərhal aç
-        if (!isRedirecting) {
-          setIsLoading(false);
-        }
+        // Nə olursa olsun, yoxlama bitən kimi LOADING-i SÖNDÜR!
+        // Artıq heç nəyi gözləmirik.
+        setIsLoading(false);
       }
     };
 
-    checkAuth();
+    initAuth();
 
-    // 4. Dəyişiklikləri dinlə
+    // 3. Dəyişiklikləri dinlə
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
           setIsGuest(false);
           localStorage.removeItem("guest_mode");
         }
-        // Hadisə baş verən kimi yüklənməni dayandır
+        
+        // Login/Logout olanda da loading-i dərhal söndür
         setIsLoading(false);
       }
     );
 
-    // --- YENİ HİSSƏ: TƏHLÜKƏSİZLİK TİMEOUT-U ---
-    // Telefonda ilişib qalmaması üçün 4 saniyədən sonra məcburi açırıq
-    const safetyTimer = setTimeout(() => {
-      setIsLoading((prev) => {
-        if (prev) {
-           console.log("Safety timeout triggered: Forcing app open");
-           return false;
-        }
-        return prev;
-      });
-    }, 4000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(safetyTimer);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
-    setIsLoading(true); // Çıxış edəndə qısa loading göstər
-    await supabase.auth.signOut();
-    setIsGuest(false);
-    localStorage.removeItem("guest_mode");
-    setSession(null);
-    setUser(null);
-    setIsLoading(false);
+    try {
+      await supabase.auth.signOut();
+      setIsGuest(false);
+      localStorage.removeItem("guest_mode");
+      setSession(null);
+      setUser(null);
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   const continueAsGuest = () => {
