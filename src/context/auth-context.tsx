@@ -18,6 +18,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState<boolean>(false);
+  
+  // Başlanğıcda true edirik ki, yoxlama bitənə qədər heç kimi bayıra atmasın
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,45 +27,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const guestStatus = localStorage.getItem("guest_mode") === "true";
     if (guestStatus) setIsGuest(true);
 
-    // 2. Auth vəziyyətini yoxla
-    const initAuth = async () => {
-      try {
-        // URL-də OAuth kodu varmı? Varsa, isLoading-i hələ false etmə!
-        const isHandlingRedirect = window.location.hash.includes('access_token') || 
-                                   window.location.search.includes('code');
+    // 2. URL-də Spotify/Google kodu varmı? (Redirect yoxlanışı)
+    // Əgər URL-də 'code' və ya 'access_token' varsa, deməli OAuth-dan qayıdırıq.
+    // Bu halda isLoading-i FALSE etməyə tələsmirik!
+    const isRedirecting = window.location.hash.includes('access_token') || 
+                          window.location.search.includes('code') ||
+                          window.location.hash.includes('type=recovery');
 
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        setSession(session);
-        setUser(session?.user ?? null);
+    // 3. Auth yoxlanışı
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
 
-        // Əgər URL-də kod varsa, onAuthStateChange hadisəsini gözləyəcəyik
-        if (!isHandlingRedirect) {
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error("Auth init xətası:", error);
+      // Əgər Redirect baş verirsə, isLoading-i true saxla (onAuthStateChange həll edəcək)
+      // Əgər adi girişdirsə, isLoading-i bitir.
+      if (!isRedirecting) {
         setIsLoading(false);
       }
-    };
+    });
 
-    initAuth();
-
-    // 3. Dəyişiklikləri dinlə (Login/Logout/OAuth redirect)
+    // 4. Dəyişiklikləri dinlə
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        console.log("Auth event:", _event, session?.user?.email);
-        
+        // Login uğurlu olduqda və ya bitdikdə:
         setSession(session);
         setUser(session?.user ?? null);
-
+        
         if (session?.user) {
           setIsGuest(false);
           localStorage.removeItem("guest_mode");
         }
-        
-        // Hər hansı bir auth hadisəsi baş verəndə yüklənməni bitir
-        setIsLoading(false);
+
+        // ƏN VACİB HİSSƏ: Auth prosesi bitən kimi yüklənməni dayandır
+        setIsLoading(false); 
       }
     );
 
@@ -76,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("guest_mode");
     setSession(null);
     setUser(null);
+    setIsLoading(false);
   };
 
   const continueAsGuest = () => {
