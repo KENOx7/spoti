@@ -1,29 +1,29 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/auth-context"; // Auth context
+import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Music, Chrome, User, ArrowRight } from "lucide-react"; // İkonlar
+import { Mail, Lock, Music, Chrome, User, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Arxa fon şəkli
-const backgroundImage = new URL("Raper album cover.jpg", import.meta.url).href;
+const backgroundImage = new URL("../Raper album cover.jpg", import.meta.url).href;
 
 export default function LoginView() {
-  // continueAsGuest funksiyasını buradan götürürük
-  const { isAuthenticated, continueAsGuest } = useAuth(); 
+  const { isAuthenticated, continueAsGuest } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Əgər artıq giriş edilibsə, ana səhifəyə at
+  // Əgər istifadəçi artıq giriş edibsə, Ana səhifəyə at
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -34,15 +34,17 @@ export default function LoginView() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: `${window.location.origin}/`,
+          // Bu kod avtomatik olaraq olduğu yeri (Localhost və ya Vercel) təyin edir
+          redirectTo: window.location.origin, 
         },
       });
       if (error) throw error;
     } catch (error: any) {
+      console.error("Login xətası:", error);
       toast({
         variant: "destructive",
         title: "Giriş Xətası",
-        description: error.message,
+        description: error.message || "Bilinməyən xəta baş verdi.",
       });
       setIsLoading(false);
     }
@@ -51,8 +53,9 @@ export default function LoginView() {
   // --- EMAIL LOGIN ---
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) return;
+    
     setIsLoading(true);
-
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -65,7 +68,7 @@ export default function LoginView() {
         title: "Uğurlu!",
         description: "Xoş gəldiniz.",
       });
-      navigate("/");
+      // Yönləndirməni AuthContext avtomatik edəcək (useEffect ilə)
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -79,13 +82,13 @@ export default function LoginView() {
 
   // --- QONAQ GİRİŞİ ---
   const handleGuestLogin = () => {
-    continueAsGuest(); // Context-ə deyirik ki, qonaq rejimini aktiv etsin
-    navigate("/");     // Sonra ana səhifəyə keçirik
+    continueAsGuest();
+    navigate("/");
   };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center relative overflow-hidden">
-      {/* Arxa Fon + Qaranlıq Örtük */}
+      {/* Arxa Fon Şəkli */}
       <div
         className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url("${backgroundImage}")` }}
@@ -110,6 +113,7 @@ export default function LoginView() {
           <div className="grid grid-cols-2 gap-4 mb-6">
             <Button 
               variant="outline" 
+              type="button"
               onClick={() => handleSocialLogin("google")}
               className="h-12 hover:bg-white/10 transition-colors"
               disabled={isLoading}
@@ -119,6 +123,7 @@ export default function LoginView() {
             </Button>
             <Button 
               variant="outline"
+              type="button"
               onClick={() => handleSocialLogin("spotify")}
               className="h-12 hover:bg-green-500/10 border-green-900/50 text-green-500 transition-colors"
               disabled={isLoading}
@@ -139,7 +144,7 @@ export default function LoginView() {
             </div>
           </div>
 
-          {/* Email Form */}
+          {/* Email Formu */}
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -153,6 +158,7 @@ export default function LoginView() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -169,6 +175,7 @@ export default function LoginView() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -182,12 +189,13 @@ export default function LoginView() {
             </Button>
           </form>
 
-          {/* QONAQ REJİMİ DÜYMƏSİ */}
+          {/* Qonaq Düyməsi */}
           <Button
             type="button"
             variant="ghost"
             className="w-full mt-3 text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent hover:border-border/30"
-            onClick={handleGuestLogin} // Yeni funksiyanı çağırır
+            onClick={handleGuestLogin}
+            disabled={isLoading}
           >
             <User className="mr-2 h-4 w-4" />
             Qonaq kimi davam et
