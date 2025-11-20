@@ -29,12 +29,14 @@ export default function LoginView() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Əgər giriş edilibsə, yönləndir
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
+  // SOCIAL LOGIN
   const handleSocialLogin = async (provider: "google" | "spotify") => {
     try {
       setIsLoading(true);
@@ -47,33 +49,34 @@ export default function LoginView() {
       if (error) throw error;
     } catch (error: any) {
       console.error("Login Error:", error);
-      toast({
-        variant: "destructive",
-        title: "Xəta",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: "Xəta", description: error.message });
       setIsLoading(false);
     }
   };
 
+  // EMAIL LOGIN (Bura baxın)
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
     
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // 1. Supabase-dən giriş sorğusu
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
+      // 2. Uğurlu olsa, AuthContext avtomatik olaraq istifadəçini tutacaq 
+      // və useEffect sizi "/" səhifəsinə atacaq.
       toast({ title: "Uğurlu!", description: "Xoş gəldiniz." });
+
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Xəta",
+        title: "Giriş Xətası",
         description: "Email və ya şifrə yanlışdır.",
       });
     } finally {
@@ -88,10 +91,10 @@ export default function LoginView() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center relative overflow-hidden">
-      {/* DÜZƏLİŞ: DİL DÜYMƏSİ (z-50) */}
+      {/* Dil Dəyişimi */}
       <div className="absolute top-4 right-4 z-50">
         <Select value={language} onValueChange={(val: "en" | "az") => setLanguage(val)}>
-          <SelectTrigger className="w-[150px] bg-black/40 backdrop-blur-md border-white/20 text-white hover:bg-black/60">
+          <SelectTrigger className="w-[140px] bg-black/40 backdrop-blur-md border-white/20 text-white hover:bg-black/60">
              <Globe className="w-4 h-4 mr-2" />
              <SelectValue />
           </SelectTrigger>
