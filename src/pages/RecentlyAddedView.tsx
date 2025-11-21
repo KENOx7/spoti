@@ -1,4 +1,3 @@
-// RecentlyAddedView.tsx
 import { TrackItem } from "@/components/TrackItem";
 import { useLanguage } from "@/context/language-context";
 import { Clock, Play } from "lucide-react";
@@ -11,32 +10,24 @@ import { storage } from "@/lib/storage";
 
 export default function RecentlyAddedView() {
   const { t } = useLanguage();
-  const { setQueue, playTrack } = usePlayer();
+  const { setQueue, playTrack, likedTracks } = usePlayer(); // DÜZƏLİŞ: likedTracks buradan gəlir
   const [recentTracks, setRecentTracks] = useState<Track[]>([]);
 
   useEffect(() => {
-    // Get recently added tracks from storage
-    // In a real app, this would come from an API with timestamps
-    // For now, we'll use a combination of liked tracks and all tracks
-    const likedTracks = storage.getLikedTracks();
+    // DÜZƏLİŞ: storage.getLikedTracks() yerinə kontekstdən gələn likedTracks istifadə edirik
     const playlists = storage.getPlaylists();
-    const allPlaylistTracks = playlists.flatMap((p) => p.tracks);
+    const allPlaylistTracks = playlists.flatMap((p) => p.tracks || []); // Null check
     
-    // Combine and deduplicate, prioritizing recently liked tracks
+    // Birləşdir və təkrarları sil
     const combined = [...likedTracks, ...allPlaylistTracks];
     const unique = Array.from(
       new Map(combined.map((track) => [track.id, track])).values()
     );
     
-    // Sort by most recently added (in a real app, use timestamps)
-    // For now, reverse to show newest first
-    setRecentTracks(unique.reverse().slice(0, 20));
-    
-    // Set queue
-    if (unique.length > 0) {
-      setQueue(unique);
-    }
-  }, [setQueue]);
+    // Tərsinə çevir (ən yenilər yuxarıda)
+    const sorted = unique.reverse().slice(0, 50);
+    setRecentTracks(sorted);
+  }, [likedTracks]); // likedTracks dəyişəndə yenilənəcək
 
   const handlePlayAll = () => {
     if (recentTracks.length > 0) {
@@ -51,7 +42,7 @@ export default function RecentlyAddedView() {
         <PageHeader
           icon={<Clock className="h-8 w-8 text-primary" />}
           title={t("recentlyAdded")}
-          subtitle={`${recentTracks.length} ${recentTracks.length === 1 ? t("track") : t("tracks")} • ${t("recentlyAddedDescription")}`}
+          subtitle={`${recentTracks.length} ${recentTracks.length === 1 ? t("song") : t("songs")}`}
           iconBgClass="bg-primary/10"
         />
         {recentTracks.length > 0 && (
@@ -61,7 +52,7 @@ export default function RecentlyAddedView() {
             className="rounded-full hidden sm:flex"
           >
             <Play className="mr-2 h-5 w-5" />
-            Hamısını Oxut
+            {t("playAll")}
           </Button>
         )}
       </div>
@@ -78,14 +69,11 @@ export default function RecentlyAddedView() {
             <Clock className="h-16 w-16 text-muted-foreground" />
           </div>
           <div className="space-y-2">
-          <h2 className="text-2xl font-bold">{t("noTracks")}</h2>
-          <p className="text-muted-foreground max-w-md">
-            {t("recentlyAddedDescription")}
-          </p>
+            <h2 className="text-xl font-semibold">{t("noRecentSongs") || "Mahnı yoxdur"}</h2>
+            <p className="text-muted-foreground">Mahnı dinlədikcə burada görünəcək.</p>
           </div>
         </div>
       )}
     </div>
   );
 }
-
