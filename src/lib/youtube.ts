@@ -1,96 +1,74 @@
 import { Track } from "@/types";
 
-// 1. PROXY SİYAHISI (Biri işləməsə, o birinə keçəcək)
-// corsproxy.io daha sürətli və stabil işləyir.
-const PROXIES = [
-  "https://corsproxy.io/?",
-  "https://api.allorigins.win/raw?url="
-];
+// Musiqi axtarışı üçün API-lər (YouTube əvəzinə)
+// Bu API-lər musiqi üçün xüsusi yaradılıb və daha stabildir.
 
-// 2. SERVER SİYAHISI (Invidious - Piped-dən daha dözümlüdür)
-// Bu serverlər adətən CORS və Proxy sorğularını bloklamır.
-const SERVERS = [
-  "https://inv.tux.pizza",
-  "https://invidious.projectsegfau.lt",
-  "https://vid.puffyan.us",
-  "https://invidious.fdn.fr",
-  "https://invidious.perennialte.ch",
-  "https://yt.artemislena.eu",
-  "https://invidious.drgns.space"
-];
-
-// Köməkçi funksiya: URL-i Proxy ilə birləşdirib çağırır
-async function fetchWithProxy(serverUrl: string, proxyUrl: string) {
-  // URL encode edirik
-  const fullUrl = `${proxyUrl}${encodeURIComponent(serverUrl)}`;
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 saniyə limit
-
+async function searchSaavn(query: string): Promise<string | null> {
   try {
-    const response = await fetch(fullUrl, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    // Saavn API (Musiqi üçün ən yaxşı pulsuz mənbə)
+    const response = await fetch(`https://saavn.dev/api/search/songs?query=${encodeURIComponent(query)}`);
     
-    if (!response.ok) throw new Error(`Status: ${response.status}`);
-    return await response.json();
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    
+    // Nəticə varmı yoxla
+    if (data.success && data.data.results.length > 0) {
+      // Ən uyğun mahnını götür
+      const song = data.data.results[0];
+      
+      // Ən yüksək keyfiyyətli yükləmə linkini tap (320kbps)
+      // downloadUrl array olur, adətən sonuncu ən keyfiyyətlidir
+      const downloadLink = song.downloadUrl.find((url: any) => url.quality === "320kbps") || 
+                           song.downloadUrl[song.downloadUrl.length - 1];
+                           
+      if (downloadLink && downloadLink.url) {
+        console.log("✅ Audio found on Saavn:", song.name);
+        return downloadLink.url;
+      }
+    }
+    return null;
   } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
+    console.warn("Saavn API failed:", error);
+    return null;
   }
 }
 
+async function searchiTunes(query: string): Promise<string | null> {
+  try {
+    // iTunes API (Çox sürətlidir, amma bəzən yalnız 30 saniyəlik verir)
+    // Amma heç nədən yaxşıdır və 100% işləyir.
+    const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=1`);
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      console.log("✅ Audio found on iTunes");
+      return data.results[0].previewUrl;
+    }
+    return null;
+  } catch (error) {
+    console.warn("iTunes API failed:", error);
+    return null;
+  }
+}
+
+// Əsas funksiya
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
   // Axtarış sorğusu
   const query = `${track.title} ${track.artist}`;
+  console.log(`🔍 Searching audio for: ${query}`);
 
-  // Serverləri qarışdırırıq (Hər dəfə fərqli server yoxlasın)
-  const shuffledServers = [...SERVERS].sort(() => Math.random() - 0.5);
+  // 1. PLAN A: Saavn API (Ən yaxşı keyfiyyət)
+  const saavnUrl = await searchSaavn(query);
+  if (saavnUrl) return saavnUrl;
 
-  // --- ÇARPAZ YOXLAMA MƏNTİQİ ---
-  // Hər bir Proxy üçün...
-  for (const proxy of PROXIES) {
-    // Hər bir Serveri yoxla...
-    for (const base of shuffledServers) {
-      try {
-        console.log(`Trying: Proxy(${proxy}) + Server(${base})`);
+  // 2. PLAN B: iTunes API (Ən stabil ehtiyat variant)
+  const itunesUrl = await searchiTunes(query);
+  if (itunesUrl) return itunesUrl;
 
-        // 1. AXTARIŞ (Invidious API)
-        // Invidious API formatı: /api/v1/search
-        const searchUrl = `${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
-        const searchData = await fetchWithProxy(searchUrl, proxy);
-
-        if (!searchData || !Array.isArray(searchData) || searchData.length === 0) continue;
-
-        // İlk videonun ID-sini götürürük
-        const videoId = searchData[0].videoId;
-
-        // 2. VİDEO DETALLARI (Səs faylını tapmaq üçün)
-        const videoUrl = `${base}/api/v1/videos/${videoId}`;
-        const videoData = await fetchWithProxy(videoUrl, proxy);
-
-        // Adaptive Formats (Səs faylları burada olur)
-        const adaptiveFormats = videoData.adaptiveFormats;
-        
-        if (adaptiveFormats && adaptiveFormats.length > 0) {
-          // Audio/mp4 və ya ən yüksək keyfiyyətli səsi axtarırıq
-          const bestAudio = adaptiveFormats
-            .filter((s: any) => s.type && s.type.includes("audio"))
-            .sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
-
-          if (bestAudio) {
-            console.log(`✅ SUCCESS! Found audio on ${base}`);
-            return bestAudio.url; // Linki tapdıq!
-          }
-        }
-
-      } catch (error) {
-        // Bu kombinasiya işləmədi, sakitcə növbətiyə keçirik
-        // console.warn(`Failed: ${proxy} + ${base}`);
-        continue;
-      }
-    }
-  }
-
-  console.error("❌ Bütün Proxy və Server kombinasiyaları yoxlandı, nəticə yoxdur.");
+  console.error("❌ Mahnı heç bir mənbədə tapılmadı.");
   return null;
 }
