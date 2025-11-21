@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 export default function Index() {
   const { t } = useLanguage();
   const { user, isGuest } = useAuth();
-  const { setQueue, likedTracks } = usePlayer(); // DÜZƏLİŞ: likedTracks buradan gəlir
+  const { setQueue, likedTracks } = usePlayer();
   const navigate = useNavigate();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
@@ -30,39 +30,40 @@ export default function Index() {
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || t("guest");
   const allTracks = mockTracks;
 
-  // DÜZƏLİŞ: tracks hissəsinə real likedTracks verildi
   const likedSongsPlaylist: Playlist = {
     id: "liked-songs",
     name: t("likedSongs"),
-    description: t("likedSongs"), // Sadə təsvir
+    description: t("likedSongs"),
     coverUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-    tracks: likedTracks || [], // CANLI DATA
+    tracks: likedTracks || [],
     createdAt: new Date()
   };
 
   return (
-    <div className="space-y-8 pb-8 animate-in fade-in duration-500">
+    // DÜZƏLİŞ: padding (px-4) və bottom-padding (pb-32) əlavə edildi
+    <div className="space-y-6 pb-32 px-4 sm:px-6 md:px-8 animate-in fade-in duration-500">
       
-      {/* Salamlama */}
-      <section className="py-8 px-2">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent pb-2 leading-tight">
+      {/* Salamlama - Mobil üçün font kiçildildi (text-2xl) */}
+      <section className="pt-6 pb-2">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent pb-2 leading-tight">
           {t("welcomeUser")}, {isGuest ? t("guest") : displayName} 👋
         </h1>
-        <p className="text-muted-foreground mt-3 text-lg">
+        <p className="text-muted-foreground mt-1 sm:mt-3 text-sm sm:text-lg">
           {t("enterMusicWorld")}
         </p>
       </section>
 
-      {/* Liked Songs (Yalnız Qonaq deyilsə və ya Qonaq olsa da göstərmək istəyirsinizsə məntiqi dəyişə bilərik) */}
+      {/* Liked Songs */}
       {!isGuest && (
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl sm:text-3xl font-bold">{t("likedSongs")}</h2>
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-xl sm:text-3xl font-bold">{t("likedSongs")}</h2>
           </div>
+          {/* DÜZƏLİŞ: maxDesktopItems=5 edildi (Əvvəl 1 idi və çox böyük görünürdü) */}
           <PlaylistCarousel
             playlists={[likedSongsPlaylist]}
             showGridOnDesktop={true}
-            maxDesktopItems={1}
+            maxDesktopItems={5} 
             onPlaylistClick={() => navigate("/liked")}
           />
         </section>
@@ -71,10 +72,11 @@ export default function Index() {
       {/* My Playlists */}
       {playlists.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl sm:text-3xl font-bold">{t("myPlaylists")}</h2>
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-xl sm:text-3xl font-bold">{t("myPlaylists")}</h2>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => navigate("/collections")}
               className="hidden sm:flex"
             >
@@ -84,11 +86,11 @@ export default function Index() {
           <PlaylistCarousel
             playlists={playlists}
             showGridOnDesktop={true}
-            maxDesktopItems={6}
+            maxDesktopItems={5}
           />
-          {playlists.length > 6 && (
-            <div className="mt-4 text-center">
-              <Button variant="ghost" onClick={() => navigate("/collections")}>
+          {playlists.length > 5 && (
+            <div className="mt-4 text-center sm:hidden">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/collections")}>
                 {t("collections")} ({playlists.length})
               </Button>
             </div>
@@ -98,7 +100,7 @@ export default function Index() {
 
       {/* Trending Songs */}
       <section>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-4">{t("trending")}</h2>
+        <h2 className="text-xl sm:text-3xl font-bold mb-3 sm:mb-4">{t("trending")}</h2>
         <div className="space-y-1">
           {allTracks.map((track, index) => (
             <TrackItem key={track.id} track={track} index={index} />
