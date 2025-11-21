@@ -1,55 +1,84 @@
 import { Track } from "@/types";
 
-// CORS icazəsi verən stabil Invidious serverləri
-const SEARCH_SERVERS = [
-  "https://inv.tux.pizza",
-  "https://invidious.projectsegfau.lt",
-  "https://vid.puffyan.us",
-  "https://yt.artemislena.eu",
-  "https://invidious.fdn.fr"
+// 1. PROXY SİYAHISI (Rotasiya ilə işləyir)
+// Bu proxy-lər brauzerdən gələn sorğuları gizlədir
+const PROXIES = [
+  "https://api.allorigins.win/raw?url=",
+  "https://thingproxy.freeboard.io/fetch/",
+  "https://corsproxy.io/?",
 ];
 
-// Timeout helper
-const fetchWithTimeout = async (url: string, ms = 4000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), ms);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (e) {
-    clearTimeout(id);
-    throw e;
-  }
-};
+// 2. AXTARIŞ METODLARI (Biri işləməsə digəri işə düşür)
+// Metod A: DuckDuckGo HTML (Ən sürətli)
+// Metod B: Invidious (Ehtiyat)
 
-// Sadəcə Video ID-ni tapır
-export async function getYoutubeVideoId(track: Track): Promise<string | null> {
-  const query = `${track.artist} - ${track.title}`;
-  console.log(`🔍 Video Axtarılır: "${query}"`);
-
-  // Serverləri qarışdırırıq
-  const shuffled = [...SEARCH_SERVERS].sort(() => Math.random() - 0.5);
-
-  for (const base of shuffled) {
+async function fetchWithProxy(url: string): Promise<string | null> {
+  for (const proxy of PROXIES) {
     try {
-      // Invidious Search API
-      const url = `${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
-      const res = await fetchWithTimeout(url);
-      
-      if (!res.ok) continue;
-
-      const data = await res.json();
-      
-      if (Array.isArray(data) && data.length > 0) {
-        const videoId = data[0].videoId;
-        console.log(`✅ Video Tapıldı: ${videoId}`);
-        // Tam YouTube linkini qaytarırıq
-        return `https://www.youtube.com/watch?v=${videoId}`;
-      }
+      const res = await fetch(proxy + encodeURIComponent(url));
+      if (res.ok) return await res.text();
     } catch (e) {
       continue;
     }
   }
+  return null;
+}
+
+// --- METOD A: DUCKDUCKGO HTML (Video ID tapmaq üçün) ---
+async function searchDuckDuckGo(query: string): Promise<string | null> {
+  const ddgUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query + " site:youtube.com")}`;
+  
+  const html = await fetchWithProxy(ddgUrl);
+  if (!html) return null;
+
+  // HTML içindən YouTube ID-ni tapırıq
+  // watch?v=XXXXXXXXXXX (11 simvol)
+  const regex = /watch\?v=([a-zA-Z0-9_-]{11})/g;
+  const match = regex.exec(html);
+
+  if (match && match[1]) {
+    console.log(`✅ DDG Tapdı: ${match[1]}`);
+    return match[1];
+  }
+  return null;
+}
+
+// --- METOD B: INVIDIOUS (Son şans) ---
+async function searchInvidious(query: string): Promise<string | null> {
+  const servers = ["https://inv.tux.pizza", "https://vid.puffyan.us"];
+  
+  for (const base of servers) {
+    try {
+      const res = await fetch(`${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data[0]?.videoId) {
+            console.log(`✅ Invidious Tapdı: ${data[0].videoId}`);
+            return data[0].videoId;
+        }
+      }
+    } catch (e) { continue; }
+  }
+  return null;
+}
+
+// --- ƏSAS FUNKSİYA ---
+export async function getYoutubeVideoId(track: Track): Promise<string | null> {
+  const query = `${track.artist} - ${track.title}`;
+  console.log(`🔍 Axtarış: "${query}"`);
+
+  // 1. Əvvəl DuckDuckGo yoxla (Çox sürətli və bloklanmır)
+  let videoId = await searchDuckDuckGo(query);
+  
+  // 2. Tapmasa Invidious yoxla
+  if (!videoId) {
+    videoId = await searchInvidious(query);
+  }
+
+  if (videoId) {
+    return `https://www.youtube.com/watch?v=${videoId}`;
+  }
+
+  console.error("❌ Video tapılmadı");
   return null;
 }
