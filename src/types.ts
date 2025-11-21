@@ -1,14 +1,13 @@
 // src/types.ts
-
 export interface Track {
   id: string;
   title: string;
   artist: string;
   album: string;
-  duration: number; // saniyə ilə
+  duration: number; 
   coverUrl: string;
-  audioUrl: string; // Artıq əsasən istifadə olunmayacaq, amma saxlaya bilərik
-  videoUrl?: string; // <-- YENİ: YouTube linki üçün
+  audioUrl: string; 
+  videoUrl?: string; // Bu vacibdir
   liked?: boolean;
 }
 
