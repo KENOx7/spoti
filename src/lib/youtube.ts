@@ -1,16 +1,41 @@
 import { Track } from "@/types";
 
-// Piped API (YouTube üçün pulsuz, açıq mənbəli API)
-const PIPED_API_URL = "https://pipedapi.kavin.rocks"; 
+// İşlək Piped API serverlərinin siyahısı (Biri işləməsə, o birinə keçəcək)
+const PIPED_INSTANCES = [
+  "https://api.piped.ot.ax",          // Ən stabil
+  "https://pipedapi.kavin.rocks",     // Orijinal (tez-tez xəta verir)
+  "https://pa.il.ax",                 // Alternativ
+  "https://piped-api.privacy.com.de", // Alternativ 2
+  "https://api.piped.privacy.com.de", // Alternativ 3
+  "https://pipedapi.drgns.space"      // Alternativ 4
+];
+
+// Köməkçi funksiya: Serverləri sıra ilə yoxlayır
+async function fetchWithFallback(path: string): Promise<any> {
+  for (const instance of PIPED_INSTANCES) {
+    try {
+      const url = `${instance}${path}`;
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn(`Server xətası (${instance}):`, error);
+      // Bu server işləmədi, növbətiyə keçirik...
+      continue;
+    }
+  }
+  throw new Error("Heç bir server cavab vermədi :(");
+}
 
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
   try {
-    // 1. Axtarış sorğusu düzəldirik (Mahnı adı + Sənətçi)
+    // 1. Axtarış sorğusu (Mahnı adı + Artist)
     const query = `${track.title} ${track.artist} official audio`;
     
-    // 2. YouTube-da axtarış edirik
-    const searchRes = await fetch(`${PIPED_API_URL}/search?q=${encodeURIComponent(query)}&filter=music_songs`);
-    const searchData = await searchRes.json();
+    // 2. Axtarışı "Fallback" funksiyası ilə edirik
+    const searchData = await fetchWithFallback(`/search?q=${encodeURIComponent(query)}&filter=music_songs`);
 
     if (!searchData.items || searchData.items.length === 0) {
       console.warn("YouTube-da mahnı tapılmadı:", track.title);
@@ -21,17 +46,18 @@ export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
     const videoId = searchData.items[0].url.split("/watch?v=")[1];
 
     // 3. Videonun səs axınlarını (streams) alırıq
-    const streamRes = await fetch(`${PIPED_API_URL}/streams/${videoId}`);
-    const streamData = await streamRes.json();
+    const streamData = await fetchWithFallback(`/streams/${videoId}`);
 
-    // 4. Ən yaxşı səs formatını tapırıq (.m4a formatı iPhone-da daha yaxşı işləyir)
+    // 4. Ən yaxşı səs formatını tapırıq
     const audioStreams = streamData.audioStreams;
     
-    // .m4a formatını axtarırıq (Apple cihazları üçün vacibdir)
+    if (!audioStreams || audioStreams.length === 0) return null;
+
+    // .m4a formatı (Apple və əksər cihazlar üçün ən yaxşısı)
     const m4aStream = audioStreams.find((s: any) => s.mimeType === "audio/mp4");
     
-    // Əgər m4a yoxdursa, hər hansı birini götürürük
-    const bestStream = m4aStream || audioStreams[0];
+    // Əgər m4a yoxdursa, keyfiyyəti ən yüksək olanı götür
+    const bestStream = m4aStream || audioStreams.sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
 
     return bestStream ? bestStream.url : null;
 
