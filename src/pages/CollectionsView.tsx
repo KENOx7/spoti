@@ -1,23 +1,71 @@
 import { useLanguage } from "@/context/language-context";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Play } from "lucide-react";
+import { Plus, Trash2, Play, Import, RefreshCw } from "lucide-react"; // Yeni ikonlar
 import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlaylistCarousel } from "@/components/PlaylistCarousel";
+import { useAuth } from "@/context/auth-context";
+import { fetchSpotifyPlaylists } from "@/lib/spotify"; // YENİ
 
 export default function CollectionsView() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAuth(); // Tokeni buradan alacağıq
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [isImporting, setIsImporting] = useState(false); // Yüklənmə statusu
 
   useEffect(() => {
     setPlaylists(storage.getPlaylists());
   }, []);
+
+  // --- SPOTIFY IMPORT ---
+  const handleImportSpotify = async () => {
+    // Tokeni yoxlayırıq (provider_token)
+    const accessToken = session?.provider_token;
+
+    if (!accessToken) {
+      toast({
+        variant: "destructive",
+        title: "Xəta",
+        description: "Spotify ilə əlaqə qurulmadı. Zəhmət olmasa yenidən giriş edin (Log out -> Spotify Login).",
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const spotifyPlaylists = await fetchSpotifyPlaylists(accessToken);
+      
+      if (spotifyPlaylists.length === 0) {
+        toast({ title: "Məlumat", description: "Spotify hesabınızda playlist tapılmadı." });
+      } else {
+        // Mövcud playlisterlə birləşdirib yadda saxlayırıq
+        const currentPlaylists = storage.getPlaylists();
+        const newAllPlaylists = [...currentPlaylists, ...spotifyPlaylists];
+        
+        // Təkrarları təmizləmək olar (ID-yə görə), amma hələlik sadə saxlayaq
+        storage.savePlaylists(newAllPlaylists);
+        setPlaylists(newAllPlaylists);
+        
+        toast({
+          title: "Uğurlu!",
+          description: `${spotifyPlaylists.length} playlist Spotify-dan yükləndi!`,
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Xəta",
+        description: "Import zamanı xəta baş verdi.",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const handleDeletePlaylist = (playlistId: string) => {
     try {
@@ -25,13 +73,13 @@ export default function CollectionsView() {
       storage.savePlaylists(updated);
       setPlaylists(updated);
       toast({
-        title: t("playlistDeleted") || "Pleylist silindi",
-        description: t("playlistDeleted") || "Uğurla silindi",
+        title: t("playlistDeleted"),
+        description: t("playlistDeleted"),
       });
     } catch (error) {
       console.error("Error deleting playlist:", error);
       toast({
-        title: t("error") || "Xəta",
+        title: t("error"),
         description: t("error") + " " + t("tryAgain"),
         variant: "destructive",
       });
@@ -40,12 +88,30 @@ export default function CollectionsView() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">{t("collections")}</h1>
-        <Button onClick={() => navigate("/make-playlist")} className="hidden sm:flex">
-          <Plus className="mr-2 h-4 w-4" />
-          {t("createPlaylist")}
-        </Button>
+        
+        <div className="flex gap-2 w-full sm:w-auto">
+          {/* SPOTIFY IMPORT DÜYMƏSİ */}
+          <Button 
+            variant="secondary" 
+            onClick={handleImportSpotify} 
+            disabled={isImporting}
+            className="flex-1 sm:flex-none"
+          >
+            {isImporting ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Import className="mr-2 h-4 w-4" />
+            )}
+            {isImporting ? "Yüklənir..." : "Spotify İdxal"}
+          </Button>
+
+          <Button onClick={() => navigate("/make-playlist")} className="flex-1 sm:flex-none">
+            <Plus className="mr-2 h-4 w-4" />
+            {t("createPlaylist")}
+          </Button>
+        </div>
       </div>
 
       {playlists.length > 0 ? (
@@ -91,7 +157,6 @@ export default function CollectionsView() {
               <CardContent className="p-4">
                 <CardTitle className="text-base truncate mb-1">{playlist.name}</CardTitle>
                 <CardDescription className="text-xs">
-                  {/* DÜZƏLİŞ: tracks.length üçün yoxlama */}
                   {playlist.tracks?.length || 0} {playlist.tracks?.length === 1 ? t("track") : t("tracks")}
                 </CardDescription>
               </CardContent>
@@ -100,20 +165,13 @@ export default function CollectionsView() {
         </div>
       ) : (
         <div className="text-center py-20">
-          <p className="text-muted-foreground mb-4">{t("emptyPlaylist") || "Pleylist yoxdur"}</p>
+          <p className="text-muted-foreground mb-4">{t("emptyPlaylist")}</p>
           <Button onClick={() => navigate("/make-playlist")}>
             <Plus className="mr-2 h-4 w-4" />
             {t("createPlaylist")}
           </Button>
         </div>
       )}
-
-      <div className="flex justify-center sm:hidden">
-        <Button onClick={() => navigate("/make-playlist")} className="w-full">
-          <Plus className="mr-2 h-4 w-4" />
-          {t("createPlaylist")}
-        </Button>
-      </div>
     </div>
   );
 }

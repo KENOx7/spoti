@@ -36,20 +36,31 @@ export default function LoginView() {
     }
   }, [isAuthenticated, navigate]);
 
-  // SOCIAL LOGIN
+// --- SOCIAL LOGIN ---
   const handleSocialLogin = async (provider: "google" | "spotify") => {
     try {
       setIsLoading(true);
+      
+      // Spotify üçün xüsusi icazələr (scopes)
+      const scopes = provider === 'spotify' 
+        ? 'user-read-email playlist-read-private playlist-read-collaborative user-library-read'
+        : undefined;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
           redirectTo: window.location.origin,
+          scopes: scopes, // İcazələri bura əlavə edirik
         },
       });
       if (error) throw error;
     } catch (error: any) {
       console.error("Login Error:", error);
-      toast({ variant: "destructive", title: "Xəta", description: error.message });
+      toast({
+        variant: "destructive",
+        title: "Xəta",
+        description: error.message,
+      });
       setIsLoading(false);
     }
   };
