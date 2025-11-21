@@ -1,13 +1,11 @@
-// CollectionsView.tsx
 import { useLanguage } from "@/context/language-context";
 import { Button } from "@/components/ui/button";
-import { Library, Plus, Music, Trash2, Play } from "lucide-react";
+import { Plus, Trash2, Play } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaylistCarousel } from "@/components/PlaylistCarousel";
 
@@ -27,89 +25,54 @@ export default function CollectionsView() {
       storage.savePlaylists(updated);
       setPlaylists(updated);
       toast({
-        title: t("playlistDeleted"),
-        description: t("playlistDeleted"),
+        title: t("playlistDeleted") || "Pleylist silindi",
+        description: t("playlistDeleted") || "Uğurla silindi",
       });
     } catch (error) {
       console.error("Error deleting playlist:", error);
       toast({
-        title: t("error"),
+        title: t("error") || "Xəta",
         description: t("error") + " " + t("tryAgain"),
         variant: "destructive",
       });
     }
   };
 
-  if (playlists.length === 0) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          icon={<Library className="h-8 w-8 text-primary" />}
-          title={t("collections")}
-          subtitle={t("myPlaylists")}
-          iconBgClass="bg-primary/10"
-        />
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-          <div className="p-6 rounded-full bg-muted/50">
-            <Library className="h-16 w-16 text-muted-foreground" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold">{t("noPlaylists")}</h2>
-            <p className="text-muted-foreground max-w-md">
-              {t("noPlaylistsDescription")}
-            </p>
-          </div>
-          <Button onClick={() => navigate("/make-playlist")}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("createPlaylist")}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <PageHeader
-          icon={<Library className="h-8 w-8 text-primary" />}
-          title={t("collections")}
-          subtitle={`${playlists.length} ${playlists.length === 1 ? "playlist" : "playlists"}`}
-          iconBgClass="bg-primary/10"
-        />
+        <h1 className="text-3xl font-bold tracking-tight">{t("collections")}</h1>
         <Button onClick={() => navigate("/make-playlist")} className="hidden sm:flex">
           <Plus className="mr-2 h-4 w-4" />
           {t("createPlaylist")}
         </Button>
       </div>
 
-      {/* Use carousel for many playlists, grid for few */}
-      {playlists.length <= 8 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {playlists.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {playlists.map((playlist) => (
             <Card 
               key={playlist.id} 
-              className="group hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
+              className="group cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden border-border/50"
               onClick={() => navigate(`/playlist/${playlist.id}`)}
             >
               <CardHeader className="p-0">
-                <div className="relative aspect-square overflow-hidden rounded-t-lg bg-muted">
-                  <img
-                    src={playlist.coverUrl}
+                <div className="aspect-square w-full relative overflow-hidden">
+                  <img 
+                    src={playlist.coverUrl || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60"} 
                     alt={playlist.name}
-                    className="h-full w-full object-cover"
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button
-                      variant="ghost"
                       size="icon"
+                      className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/playlist/${playlist.id}`);
                       }}
-                      className="h-10 w-10 text-white hover:bg-white/20 flex items-center justify-center"
                     >
-                      <Play className="h-5 w-5 fill-white" />
+                      <Play className="h-5 w-5 ml-0.5" />
                     </Button>
                     <Button
                       variant="destructive"
@@ -118,7 +81,7 @@ export default function CollectionsView() {
                         e.stopPropagation();
                         handleDeletePlaylist(playlist.id);
                       }}
-                      className="h-10 w-10 flex items-center justify-center"
+                      className="h-10 w-10 rounded-full shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -126,26 +89,29 @@ export default function CollectionsView() {
                 </div>
               </CardHeader>
               <CardContent className="p-4">
-                <CardTitle className="text-base truncate">{playlist.name}</CardTitle>
-                <CardDescription className="text-sm">
-                  {playlist.tracks.length} {playlist.tracks.length === 1 ? t("track") : t("tracks")}
+                <CardTitle className="text-base truncate mb-1">{playlist.name}</CardTitle>
+                <CardDescription className="text-xs">
+                  {/* DÜZƏLİŞ: tracks.length üçün yoxlama */}
+                  {playlist.tracks?.length || 0} {playlist.tracks?.length === 1 ? t("track") : t("tracks")}
                 </CardDescription>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <PlaylistCarousel
-          playlists={playlists}
-          showGridOnDesktop={false}
-          maxDesktopItems={8}
-        />
+        <div className="text-center py-20">
+          <p className="text-muted-foreground mb-4">{t("emptyPlaylist") || "Pleylist yoxdur"}</p>
+          <Button onClick={() => navigate("/make-playlist")}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t("createPlaylist")}
+          </Button>
+        </div>
       )}
 
       <div className="flex justify-center sm:hidden">
         <Button onClick={() => navigate("/make-playlist")} className="w-full">
           <Plus className="mr-2 h-4 w-4" />
-          Yeni Playlist
+          {t("createPlaylist")}
         </Button>
       </div>
     </div>
