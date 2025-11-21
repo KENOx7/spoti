@@ -1,13 +1,17 @@
 import { Track } from "@/types";
 
-// İşlək Piped API serverlərinin siyahısı (Biri işləməsə, o birinə keçəcək)
+// Ən yeni və stabil Piped API serverləri (2024-2025)
+// Biri işləməsə, kod avtomatik digərinə keçəcək.
 const PIPED_INSTANCES = [
-  "https://api.piped.ot.ax",          // Ən stabil
-  "https://pipedapi.kavin.rocks",     // Orijinal (tez-tez xəta verir)
-  "https://pa.il.ax",                 // Alternativ
-  "https://piped-api.privacy.com.de", // Alternativ 2
-  "https://api.piped.privacy.com.de", // Alternativ 3
-  "https://pipedapi.drgns.space"      // Alternativ 4
+  "https://api.piped.ot.ax",           // Çox stabil
+  "https://api.piped.projectsegfau.lt",// Çox stabil
+  "https://pipedapi.kavin.rocks",      // Orijinal (bəzən CORS verir)
+  "https://pipedapi.moomoo.me",        // Alternativ
+  "https://pipedapi.smnz.de",          // Alternativ
+  "https://pipedapi.adminforge.de",    // Alternativ
+  "https://api.piped.privacydev.net",  // Alternativ
+  "https://pipedapi.ducks.party",      // Alternativ
+  "https://piped-api.lunar.icu"        // Alternativ
 ];
 
 // Köməkçi funksiya: Serverləri sıra ilə yoxlayır
@@ -15,18 +19,29 @@ async function fetchWithFallback(path: string): Promise<any> {
   for (const instance of PIPED_INSTANCES) {
     try {
       const url = `${instance}${path}`;
-      const response = await fetch(url);
       
+      // Timeout əlavə edirik ki, ölü serveri çox gözləməsin (3 saniyə)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(url, { 
+        signal: controller.signal 
+      });
+      
+      clearTimeout(timeoutId);
+
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        // Əgər boş cavab gəlibsə, bunu xəta kimi qəbul et
+        if (Array.isArray(data) && data.length === 0) continue; 
+        return data;
       }
     } catch (error) {
-      console.warn(`Server xətası (${instance}):`, error);
-      // Bu server işləmədi, növbətiyə keçirik...
+      // Bu server işləmədi, səssizcə növbətiyə keçirik
       continue;
     }
   }
-  throw new Error("Heç bir server cavab vermədi :(");
+  throw new Error("Bütün serverlər yoxlandı, heç biri cavab vermədi.");
 }
 
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
