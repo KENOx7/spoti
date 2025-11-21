@@ -1,28 +1,41 @@
 // src/lib/youtube.ts
 import { Track } from "@/types";
 
+// Daha stabil və CORS dostu serverlər
 const PIPED_INSTANCES = [
-  "https://pipedapi.kavin.rocks",
-  "https://pipedapi.tokhmi.xyz",
-  "https://api.piped.mint.lgbt",
-  "https://pipedapi.syncpwn.dev",
+  "https://pipedapi.drgns.space",          // Stabil
+  "https://api.piped.projectsegfau.lt",    // Stabil
+  "https://piped-api.privacy.com.de",      // Stabil
+  "https://api.piped.spot.im",             // Çox sürətli
+  "https://pipedapi.kavin.rocks",          // Backup (bəzən 502 verir)
 ];
 
 async function safeFetch(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 saniyə timeout
+
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { 
+      signal: controller.signal,
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+    clearTimeout(timeoutId);
     if (res.ok) return res;
+    throw new Error(`Status: ${res.status}`);
   } catch (e) {
-    // xəta olsa davam et
+    clearTimeout(timeoutId);
+    throw e;
   }
-  throw new Error("Fetch failed");
 }
 
-// Player Context bu funksiyanı istifadə edir
 export async function getYoutubeId(track: Track): Promise<string | null> {
+  // Axtarış sorğuları
   const queries = [
-    `${track.artist} - ${track.title} official video`,
-    `${track.artist} - ${track.title} audio`,
+    `${track.artist} - ${track.title} official audio`,
+    `${track.artist} - ${track.title}`
   ];
 
   for (const instance of PIPED_INSTANCES) {
@@ -33,13 +46,22 @@ export async function getYoutubeId(track: Track): Promise<string | null> {
         const searchData = await searchRes.json();
 
         if (searchData.items && searchData.items.length > 0) {
-          const videoId = searchData.items[0].url.replace("/watch?v=", "");
-          return videoId;
+          // Video ID-ni götürürük (/watch?v= hissəsini təmizləyirik)
+          const videoId = searchData.items[0].url.split("v=")[1];
+          // Sadəcə ID-nin düzgünlüyünü yoxlayırıq
+          if (videoId && videoId.length > 5) {
+            console.log(`[YouTube API] Tapıldı (${instance}):`, videoId);
+            return videoId;
+          }
         }
       } catch (e) {
+        // Xəta olsa, növbəti serverə keç
+        // console.warn(`[YouTube API] ${instance} xəta verdi, növbəti yoxlanılır...`);
         continue;
       }
     }
   }
+  
+  console.warn("[YouTube API] Heç bir serverdən cavab gəlmədi, fallback rejiminə keçilir.");
   return null;
 }
