@@ -1,128 +1,157 @@
 import { Track } from "@/types";
 
-const DEFAULT_TIMEOUT = 8000; // 8 saniyə (çox gözləməsin)
-const MAX_RETRIES = 2; // 2 dəfə təkrar yoxlasın
+const DEFAULT_TIMEOUT = 5000; // 5 saniyə
+const MAX_RETRIES = 1;
 
-// CORS Proxy (Brauzer bloklamasın deyə)
+// CORS Proxy (Bəzi API-lər üçün lazımdır)
 const CORS_PROXY = "https://corsproxy.io/?";
 
-// Stabil Piped Serverləri (2025 Yenilənmiş)
+// === SERVERLƏR (Daha etibarlı siyahı) ===
 const PIPED_INSTANCES = [
   "https://pipedapi.kavin.rocks",
   "https://api.piped.ot.ax",
-  "https://api.piped.projectsegfau.lt",
   "https://pipedapi.moomoo.me",
   "https://pipedapi.adminforge.de",
   "https://api.piped.privacydev.net",
-  "https://pipedapi.ducks.party"
+  "https://pipedapi.drgns.space"
 ];
 
-// Timeout helper
+const INVIDIOUS_INSTANCES = [
+  "https://vid.puffyan.us",
+  "https://inv.tux.pizza",
+  "https://invidious.drgns.space",
+  "https://invidious.fdn.fr",
+  "https://invidious.perennialteks.com"
+];
+
+// === KÖMƏKÇİ FUNKSİYALAR ===
+
 function timeoutSignal(ms: number): AbortSignal {
   const c = new AbortController();
   setTimeout(() => c.abort(), ms);
   return c.signal;
 }
 
-// Təhlükəsiz fetch
 async function safeFetch(url: string, opts: any = {}, timeout = DEFAULT_TIMEOUT): Promise<Response> {
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const signal = timeoutSignal(timeout);
-      const res = await fetch(url, { ...opts, signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res;
-    } catch (err: any) {
-      if (attempt === MAX_RETRIES) throw err;
-      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-    }
+  try {
+    const signal = timeoutSignal(timeout);
+    const res = await fetch(url, { ...opts, signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res;
+  } catch (err) {
+    throw err;
   }
-  throw new Error("Fetch failed");
 }
 
-// Axtarış mətnini təmizləyən funksiya
 function cleanQuery(artist: string, title: string): string {
-  // Artist və Title-dan lazımsız simvolları təmizləyirik
-  const cleanArtist = artist.replace(/feat\..*|ft\..*/i, "").trim();
-  const cleanTitle = title
-    .replace(/\(.*?\)/g, "") // Mötərizələri silir: (Official Video)
-    .replace(/\[.*?\]/g, "") // Kvadrat mötərizələri silir: [4K]
-    .replace(/feat\..*|ft\..*|official|video|audio|lyrics|remastered/gi, "") // Lazımsız sözlər
+  const cleanArtist = artist.replace(/feat\.|ft\./gi, "").trim();
+  // "Official Video" kimi sözləri saxlayırıq ki, cover yox, original gəlsin, 
+  // amma mötərizələri təmizləyirik.
+  let cleanTitle = title
+    .replace(/\(.*\)/g, "") 
+    .replace(/\[.*\]/g, "")
     .trim();
-
-  // SİZİN İSTƏYİNİZ: Artist - Title formatı
+  
   return `${cleanArtist} - ${cleanTitle}`;
 }
 
-// === 1. PIPED AXTARIŞI (TAM Audio) ===
-async function searchPiped(track: Track): Promise<string | null> {
-  // Sorğunu hazırlayırıq
-  let query = cleanQuery(track.artist, track.title);
-  
-  // YouTube-da dəqiq musiqi tapması üçün sonuna "audio" əlavə edirik
-  // Amma axtarışda Artist öndə gəlir
-  const finalQuery = `${query} audio`; 
-  
-  console.log(`🔥 PIPED Axtarış: "${finalQuery}"`);
+// Videonun müddətini yoxlayır (çox uzun miksləri və ya şortları istəmirik)
+function isValidDuration(seconds: number): boolean {
+  return seconds > 60 && seconds < 600; // 1 dəqiqə ilə 10 dəqiqə arası
+}
 
-  // Serverləri qarışdırırıq
+// === 1. PIPED AXTARIŞI (Yenilənmiş) ===
+async function searchPiped(query: string): Promise<string | null> {
   const shuffled = [...PIPED_INSTANCES].sort(() => Math.random() - 0.5);
+  
+  // Daha dəqiq nəticə üçün "Lyrics" əlavə edirik ki, klip səsləri (intro/outro) olmasın
+  const searchQuery = `${query} lyrics`; 
 
   for (const base of shuffled) {
     try {
-      // 1. Axtarış Sorğusu (Proxy ilə)
-      // filter=music_songs vacibdir ki, video yox musiqi gəlsin
-      const searchUrl = `${CORS_PROXY}${encodeURIComponent(`${base}/api/v1/search?q=${finalQuery}&filter=music_songs`)}`;
+      // Filteri "all" qoyuruq, "music_songs" çox vaxt nəticə vermir
+      const searchUrl = `${base}/api/v1/search?q=${encodeURIComponent(searchQuery)}&filter=all`;
+      const res = await safeFetch(searchUrl); // Proxy-siz yoxlayaq, Piped adətən CORS dəstəkləyir
+      const results = await res.json();
+
+      if (!Array.isArray(results)) continue;
+
+      // Uyğun videonu tapırıq (Duration vacibdir)
+      const video = results.find((v: any) => !v.isShort && isValidDuration(v.duration));
       
-      const searchRes = await safeFetch(searchUrl);
-      const results = await searchRes.json();
+      if (!video) continue;
 
-      if (!Array.isArray(results) || results.length === 0) continue;
-
-      // İlk nəticənin ID-sini götürürük
-      const videoId = results[0].url.split("watch?v=")[1] || results[0].videoId;
-      if (!videoId) continue;
-
-      // 2. Səs Linkini Almaq (Proxy ilə)
-      const streamUrl = `${CORS_PROXY}${encodeURIComponent(`${base}/api/v1/streams/${videoId}`)}`;
+      const streamUrl = `${base}/api/v1/streams/${video.url.split("v=")[1]}`;
       const streamRes = await safeFetch(streamUrl);
       const info = await streamRes.json();
 
-      // Audio axınlarını tapırıq
       const audioStreams = info.audioStreams || [];
       
-      // .m4a formatını tapırıq (iPhone və Web üçün ən yaxşısı)
-      const m4a = audioStreams.find((s: any) => s.mimeType === "audio/mp4");
-      
-      // Ən yüksək keyfiyyətli səsi seçirik
-      const bestAudio = m4a || audioStreams.sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
+      // m4a və ya yüksək bitrate seçirik
+      const bestAudio = audioStreams.find((s: any) => s.mimeType === "audio/mp4") || 
+                        audioStreams.sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
 
       if (bestAudio?.url) {
-        console.log(`✅ [Piped:${base}] TAM mahnı tapıldı!`);
-        return bestAudio.url; 
+        console.log(`✅ [Piped] Tapıldı: ${base}`);
+        return bestAudio.url;
       }
-
     } catch (e) {
-      // console.warn(`Server xətası: ${base}`);
       continue;
     }
   }
   return null;
 }
 
-// === 2. iTUNES FALLBACK (30s Preview) ===
-async function searchiTunes(track: Track): Promise<string | null> {
+// === 2. INVIDIOUS AXTARIŞI (YENİ - Ehtiyat Plan) ===
+async function searchInvidious(query: string): Promise<string | null> {
+  const shuffled = [...INVIDIOUS_INSTANCES].sort(() => Math.random() - 0.5);
+  
+  console.log(`🔎 Invidious axtarış: ${query}`);
+
+  for (const base of shuffled) {
+    try {
+      const searchUrl = `${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+      const res = await safeFetch(searchUrl);
+      const results = await res.json();
+
+      if (!Array.isArray(results) || results.length === 0) continue;
+
+      // İlk uyğun gələn videonu götürürük
+      const video = results.find((v: any) => isValidDuration(v.lengthSeconds));
+      if (!video) continue;
+
+      // Video detallarını çəkirik
+      const videoId = video.videoId;
+      const infoUrl = `${base}/api/v1/videos/${videoId}`;
+      const infoRes = await safeFetch(infoUrl);
+      const info = await infoRes.json();
+
+      // Adaptive formatlardan audio seçirik
+      const adaptive = info.adaptiveFormats || [];
+      const audio = adaptive
+        .filter((f: any) => f.type && f.type.includes("audio"))
+        .sort((a: any, b: any) => parseInt(b.bitrate) - parseInt(a.bitrate))[0];
+
+      if (audio?.url) {
+        console.log(`✅ [Invidious] Tapıldı: ${base}`);
+        return audio.url;
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+  return null;
+}
+
+// === 3. iTUNES FALLBACK (Son çarə) ===
+async function searchiTunes(query: string): Promise<string | null> {
   try {
-    const query = cleanQuery(track.artist, track.title);
-    console.log(`🍎 iTunes Fallback: "${query}"`);
-    
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`;
-    
     const res = await safeFetch(url);
     const data = await res.json();
     
     if (data.resultCount > 0 && data.results[0].previewUrl) {
-      console.log("⚠️ iTunes 30s preview tapıldı");
+      console.log("⚠️ Yalnız iTunes 30s tapıldı");
       return data.results[0].previewUrl;
     }
     return null;
@@ -131,16 +160,18 @@ async function searchiTunes(track: Track): Promise<string | null> {
   }
 }
 
-// === ƏSAS FUNKSİYA ===
+// === ƏSAS İXRAC EDİLƏN FUNKSİYA ===
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  // 1. Piped yoxla (Tam mahnı)
-  const pipedUrl = await searchPiped(track);
+  const baseQuery = cleanQuery(track.artist, track.title);
+  
+  // 1. Addım: Piped ilə yoxla (Ən sürətli)
+  const pipedUrl = await searchPiped(baseQuery);
   if (pipedUrl) return pipedUrl;
 
-  // 2. iTunes yoxla (Ən azı nəsə oxusun)
-  const itunesUrl = await searchiTunes(track);
-  if (itunesUrl) return itunesUrl;
+  // 2. Addım: Invidious ilə yoxla (Daha çox server var)
+  const invidiousUrl = await searchInvidious(baseQuery);
+  if (invidiousUrl) return invidiousUrl;
 
-  console.error("❌ Mahnı heç bir yerdə tapılmadı.");
-  return null;
+  // 3. Addım: iTunes (Heç olmasa preview olsun)
+  return await searchiTunes(baseQuery);
 }
