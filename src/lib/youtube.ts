@@ -1,25 +1,22 @@
 import { Track } from "@/types";
 
-// CORS Proxy (Körpü) - Bu, CORS xətasını ləğv edir
+// CORS Proxy (Bütün sorğuları burdan keçirəcəyik)
 const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
-// Ən dözümlü serverlərin siyahısı
+// Ən stabil serverlər (Yoxlanılıb)
 const SERVERS = [
   "https://pipedapi.kavin.rocks",
+  "https://api.piped.ot.ax",
   "https://api.piped.projectsegfau.lt",
-  "https://pipedapi.moomoo.me",
-  "https://pipedapi.drgns.space",
-  "https://pipedapi.adminforge.de",
-  "https://api.piped.privacydev.net",
-  "https://piped-api.lunar.icu"
+  "https://pipedapi.moomoo.me"
 ];
 
 async function fetchWithProxy(url: string) {
-  // URL-i proxy vasitəsilə çağırırıq
+  // URL encode edirik
   const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniyə vaxt
+  const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 saniyə vaxt veririk
 
   try {
     const response = await fetch(proxyUrl, { signal: controller.signal });
@@ -33,48 +30,46 @@ async function fetchWithProxy(url: string) {
 }
 
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  // Axtarış sorğusu
-  const query = `${track.title} ${track.artist} official audio`;
+  // Axtarış sorğusu: Mahnı adı + Artist
+  // "official audio" sözünü sildim, bəzən nəticəni azaldır
+  const query = `${track.title} ${track.artist}`;
 
-  // Serverləri qarışdırırıq (Random)
+  // Serverləri qarışdırırıq
   const shuffledServers = [...SERVERS].sort(() => Math.random() - 0.5);
 
   for (const base of shuffledServers) {
     try {
-      console.log(`Trying server: ${base}`);
-
-      // 1. Axtarış (Proxy ilə)
+      // 1. Axtarış
       const searchUrl = `${base}/search?q=${encodeURIComponent(query)}&filter=music_songs`;
       const searchData = await fetchWithProxy(searchUrl);
 
       if (!searchData.items || searchData.items.length === 0) continue;
 
+      // İlk video ID-ni götürürük
       const videoId = searchData.items[0].url.split("/watch?v=")[1];
 
-      // 2. Stream (Proxy ilə)
+      // 2. Səs axını (Stream)
       const streamUrl = `${base}/streams/${videoId}`;
       const streamData = await fetchWithProxy(streamUrl);
 
       const audioStreams = streamData.audioStreams;
       if (!audioStreams || audioStreams.length === 0) continue;
 
-      // .m4a formatını tapırıq (iPhone və Web üçün ən yaxşısı)
+      // .m4a axtarırıq
       const m4a = audioStreams.find((s: any) => s.mimeType === "audio/mp4");
       
-      // Əgər m4a yoxdursa, ən yüksək keyfiyyətli hər hansı birini götür
+      // Tapılmasa, ən yüksək keyfiyyətlini götürürük
       const bestAudio = m4a || audioStreams.sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
 
       if (bestAudio) {
-        console.log("Audio found!", bestAudio.url);
         return bestAudio.url;
       }
 
     } catch (error) {
-      console.warn(`Server ${base} failed, trying next...`);
+      // Səssizcə növbəti serverə keçirik
       continue;
     }
   }
 
-  console.error("Heç bir serverdən nəticə alınmadı.");
   return null;
 }
