@@ -15,7 +15,7 @@ export function Player() {
     currentTime,
     duration,
     isLoading,
-    isLoadingStream, // YENİ: Context-dən gəlir
+    isLoadingStream,
     repeatMode,
     isShuffled,
     togglePlayPause,
@@ -64,8 +64,10 @@ export function Player() {
   const isBuffering = isLoading || isLoadingStream;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border p-2 sm:p-4 z-50 safe-area-bottom">
-      <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+    // DƏYİŞİKLİK: md:left-64 (PC-də soldan sidebar qədər boşluq buraxır)
+    // Əgər sidebarınızın ölçüsü fərqlidirsə (məsələn w-72), buranı md:left-72 edin.
+    <div className="fixed bottom-0 right-0 left-0 md:left-64 bg-background/95 backdrop-blur-lg border-t border-border p-2 sm:p-4 z-50 safe-area-bottom transition-all duration-300">
+      <div className="max-w-screen-2xl mx-auto flex items-center justify-between gap-2 sm:gap-4 h-full">
         
         {/* 1. Mahnı Məlumatı (Sol Tərəf) */}
         <div className="flex items-center gap-2 sm:gap-4 w-1/3 min-w-0">
@@ -130,7 +132,7 @@ export function Player() {
               size="icon"
               className="h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg hover:scale-105 transition-transform bg-primary text-primary-foreground"
               onClick={togglePlayPause}
-              disabled={isBuffering} // Yüklənərkən deaktiv olur
+              disabled={isBuffering} 
             >
               {isBuffering ? (
                 <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
@@ -167,7 +169,7 @@ export function Player() {
             </Button>
           </div>
 
-          {/* Progress Bar (Yalnız Desktopda tam görünür, Mobildə incə) */}
+          {/* Progress Bar */}
           <div className="flex items-center gap-2 w-full sm:w-80 md:w-96">
             <span className="text-[10px] text-muted-foreground w-8 text-right hidden sm:block">
               {formatTime(localTime)}
