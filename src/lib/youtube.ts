@@ -1,162 +1,163 @@
 import { Track } from "@/types";
 
-// === KONFİQURASİYA ===
-const DEFAULT_TIMEOUT = 7000; 
+// === AYARLAR ===
+const TIMEOUT_MS = 8000;
 
-// === PROXY SİSTEMİ (Biri işləməsə, o biri işə düşəcək) ===
-// Bu ən vacib hissədir. Brauzer blokunu aşmaq üçün.
-const PROXY_LIST = [
-  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-];
-
-// === COBALT INSTANCES (YouTube kilidini qıran serverlər) ===
+// === GÜCLÜ SERVERLƏR (COBALT) ===
+// YouTube kilidini qıran əsas serverlər
 const COBALT_INSTANCES = [
-  "https://cobalt.sipmaker.net", // Tez-tez işləyir
-  "https://cobalt.tools",        // Rəsmi
-  "https://co.wuk.sh",
+  "https://cobalt.sipmaker.net",
   "https://api.cobalt.7io.org",
-  "https://cobalt.kwiatekmiki.pl"
+  "https://co.wuk.sh",
+  "https://cobalt.tools",
+  "https://cobalt.kwiatekmiki.pl",
+  "https://cobalt.timos.design"
 ];
 
-// === PIPED SERVERS (Sadəcə ID tapmaq üçün) ===
-const PIPED_SERVERS = [
-  "https://pipedapi.kavin.rocks",
-  "https://api.piped.ot.ax",
-  "https://api.piped.projectsegfau.lt",
-  "https://pipedapi.adminforge.de"
-];
+// === PROXY & TOOLS ===
 
-// === KÖMƏKÇİLER ===
-function timeoutSignal(ms: number) {
-  const controller = new AbortController();
-  setTimeout(() => controller.abort(), ms);
-  return controller.signal;
+// Sadə Timeout funksiyası
+const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+// Təhlükəsiz fetch (Proxy rotasiyası ilə)
+async function aggressiveFetch(url: string): Promise<string | null> {
+  // 1. Birbaşa yoxlayaq (Bəlkə blok yoxdur)
+  try {
+    const c = new AbortController();
+    setTimeout(() => c.abort(), 4000);
+    const res = await fetch(url, { signal: c.signal });
+    if (res.ok) return await res.text();
+  } catch (e) {}
+
+  // 2. AllOrigins Proxy (HTML skrapinq üçün idealdır)
+  try {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl);
+    const data = await res.json();
+    if (data.contents) return data.contents;
+  } catch (e) {}
+
+  // 3. CorsProxy (API üçün)
+  try {
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl);
+    if (res.ok) return await res.text();
+  } catch (e) {}
+
+  return null;
 }
 
-// Proxy Rotasiyası ilə Fetch
-// Bu funksiya bir proxy işləməyəndə avtomatik o birinə keçir
-async function fetchWithProxyRotation(url: string, options: any = {}) {
-  for (const proxyGen of PROXY_LIST) {
-    try {
-      const proxyUrl = proxyGen(url);
-      // console.log(`Trying proxy: ${proxyUrl}`);
-      const res = await fetch(proxyUrl, { 
-        ...options, 
-        signal: timeoutSignal(5000) 
-      });
-      if (res.ok) return res;
-    } catch (e) {
-      continue;
-    }
-  }
-  throw new Error("Bütün proxylər selbəst buraxıldı.");
-}
+// === 1. ID TAPMAQ (GİZLİ METOD: DUCKDUCKGO) ===
+// API istifadə etmirik, birbaşa axtarış nəticəsini oxuyuruq.
+async function findVideoId(artist: string, title: string): Promise<string | null> {
+  const query = `${artist} - ${title} lyrics site:youtube.com`;
+  console.log(`🕵️ Gizli Axtarış (DDG): ${query}`);
 
-function cleanQuery(artist: string, title: string): string {
-  return `${artist} - ${title}`
-    .replace(/feat\.|ft\.|official|video|audio|lyrics/gi, "")
-    .trim();
-}
+  // DuckDuckGo HTML versiyası (çox yüngüldür və bloklanmır)
+  const ddgUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
 
-// === 1. ID AXTARIŞI (Piped vasitəsilə) ===
-async function findVideoId(query: string): Promise<string | null> {
-  const searchQuery = `${query} audio`;
+  const html = await aggressiveFetch(ddgUrl);
   
-  for (const base of PIPED_SERVERS) {
+  if (!html) return null;
+
+  // Regex ilə YouTube ID-sini HTML-in içindən çəkib çıxarırıq
+  // watch?v=XXXXXXXXXXX formatını axtarır
+  const regex = /watch\?v=([a-zA-Z0-9_-]{11})/g;
+  const match = regex.exec(html);
+
+  if (match && match[1]) {
+    console.log(`🎯 ID Tapıldı: ${match[1]}`);
+    return match[1];
+  }
+
+  return null;
+}
+
+// === ALTERNATIV ID AXTARIŞI (PIPED API) ===
+async function findVideoIdFallback(artist: string, title: string): Promise<string | null> {
+  const pipedServers = ["https://api.piped.ot.ax", "https://pipedapi.kavin.rocks"];
+  const q = `${artist} - ${title} audio`;
+
+  for (const server of pipedServers) {
     try {
-      const targetUrl = `${base}/api/v1/search?q=${encodeURIComponent(searchQuery)}&filter=all`;
+      const url = `${server}/api/v1/search?q=${encodeURIComponent(q)}&filter=all`;
+      const text = await aggressiveFetch(url);
+      if (!text) continue;
       
-      // Axtarış üçün proxy rotasiyasını işlədirik
-      const res = await fetchWithProxyRotation(targetUrl);
-      const data = await res.json();
-
-      if (!Array.isArray(data)) continue;
-
-      // 1-15 dəqiqəlik videoları seçirik (mahnı üçün)
-      const video = data.find((v: any) => 
-        !v.isShort && 
-        v.duration > 60 && 
-        v.duration < 900
-      );
-
-      if (video) {
-        const id = video.url.split("v=")[1];
-        console.log(`🎯 Video Tapıldı: ${id} (${base})`);
-        return id;
+      const json = JSON.parse(text);
+      if (Array.isArray(json) && json.length > 0) {
+        const vid = json.find((v: any) => !v.isShort && v.duration > 60);
+        if (vid) return vid.url.split("v=")[1];
       }
-    } catch (e) {
-      continue;
-    }
+    } catch (e) { continue; }
   }
   return null;
 }
 
-// === 2. COBALT İLƏ LİNK GENERASİYASI (MAGİC) ===
+// === 2. AUDIO LİNKİNİ ALMAQ (COBALT) ===
 async function getCobaltStream(videoId: string): Promise<string | null> {
-  const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const targetUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   for (const instance of COBALT_INSTANCES) {
     try {
-      console.log(`⛏️ Cobalt işə düşdü: ${instance}`);
-      
-      // Cobalt POST request tələb edir
+      // Cobalt adətən POST istəyir
       const res = await fetch(`${instance}/api/json`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
+          "Accept": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          url: youtubeUrl,
-          isAudioOnly: true, // Yalnız səs
-          aFormat: "mp3"     // MP3 formatında
-        }),
-        signal: timeoutSignal(8000)
+          url: targetUrl,
+          isAudioOnly: true,
+          aFormat: "mp3"
+        })
       });
 
       const data = await res.json();
-
+      
       if (data.url) {
-        console.log(`✅ TAM MAHNı LİNKİ: ${data.url}`);
+        console.log(`✅ Stream Yaradıldı: ${instance}`);
         return data.url;
       }
     } catch (e) {
-      // console.log(`Cobalt fail: ${instance}`);
+      // console.warn(`Cobalt fail: ${instance}`);
       continue;
     }
   }
   return null;
 }
 
-// === 3. ITUNES (Ehtiyat) ===
+// === 3. ITUNES FALLBACK ===
 async function searchiTunes(query: string): Promise<string | null> {
   try {
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`;
-    const res = await fetch(url);
+    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`);
     const data = await res.json();
-    return data.results[0]?.previewUrl || null;
-  } catch (e) {
-    return null;
-  }
+    return data.results?.[0]?.previewUrl || null;
+  } catch (e) { return null; }
 }
 
-// === ƏSAS SYSTEM ===
+// === ƏSAS FUNKSİYA ===
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  const baseQuery = cleanQuery(track.artist, track.title);
-  console.log(`🚀 Başlayır: ${baseQuery}`);
+  const cleanArtist = track.artist.replace(/feat\.|ft\./gi, "").trim();
+  const cleanTitle = track.title.replace(/\(.*\)|\[.*\]/g, "").trim();
 
-  // 1. Video ID tap
-  const videoId = await findVideoId(baseQuery);
+  // 1. Video ID tapmağa çalışırıq (DDG Scraping)
+  let videoId = await findVideoId(cleanArtist, cleanTitle);
 
-  if (videoId) {
-    // 2. Cobalt ilə təmiz link al
-    const fullUrl = await getCobaltStream(videoId);
-    if (fullUrl) return fullUrl;
+  // Əgər DDG tapmasa, Piped API yoxla
+  if (!videoId) {
+    console.log("⚠️ DDG tapmadı, Piped yoxlanılır...");
+    videoId = await findVideoIdFallback(cleanArtist, cleanTitle);
   }
 
-  // 3. Heç biri işləməzsə iTunes
-  console.warn("⚠️ Tam versiya tapılmadı, iTunes yoxlanılır...");
-  return await searchiTunes(baseQuery);
+  // 2. Əgər ID varsa, Cobalt ilə MP3 linki al
+  if (videoId) {
+    const streamUrl = await getCobaltStream(videoId);
+    if (streamUrl) return streamUrl;
+  }
+
+  // 3. Heç nə işləməsə iTunes (Qara gün üçün)
+  console.error("❌ Tam versiya alınmadı, iTunes qaytarılır.");
+  return await searchiTunes(`${cleanArtist} - ${cleanTitle}`);
 }
