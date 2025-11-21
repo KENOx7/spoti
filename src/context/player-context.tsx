@@ -29,7 +29,6 @@ interface PlayerContextType {
   reportProgress: (playedSeconds: number, loadedSeconds?: number) => void;
   reportDuration: (duration: number) => void;
   reportEnded: () => void;
-  reportReady: () => void; // Yeni: Player hazır olanda
   likedTracks: Track[];
   toggleLike: (track: Track) => void;
   setQueue: (tracks: Track[]) => void;
@@ -40,7 +39,7 @@ const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(storage.getCurrentTrack());
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolumeState] = useState(0.5); // Səs səviyyəsi standart 50%
+  const [volume, setVolumeState] = useState(0.5); 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -62,27 +61,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentTrack]);
 
-  // --- PLAY MƏNTİQİ (SADƏLƏŞDİRİLMİŞ) ---
+  // --- PLAY MƏNTİQİ (DÜZƏLDİLMİŞ) ---
   const playTrack = (track: Track) => {
-    setIsPlaying(false); // Keçid edərkən qısa fasilə
-    setIsBuffering(true); // Yüklənir işarəsini göstər
+    // 1. Buffering-i aktiv et
+    setIsBuffering(true);
 
-    // LAST.FM METODU:
-    // API axtarışı yoxdur. Birbaşa "ytsearch:" əmrini formalaşdırırıq.
-    // ReactPlayer bunu görəndə avtomatik arxa planda YouTube-da axtarır və ilkinə play basır.
+    // 2. Axtarış əmrini yarat
     const searchCommand = `ytsearch:${track.artist} - ${track.title} official audio`;
     
+    // 3. Track-i yenilə
     const trackToPlay = {
         ...track,
         videoUrl: searchCommand
     };
 
     setCurrentTrack(trackToPlay);
-    // isPlaying dərhal true etmirik, "reportReady" gözləyirik (aşağıda)
-  };
-
-  const reportReady = () => {
-    setIsBuffering(false);
+    
+    // 4. DƏRHAL PLAY ƏMRİ VER (Gözləmədən)
     setIsPlaying(true);
   };
 
@@ -157,7 +152,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setSeekToTime(time);
   };
 
+  // ReactPlayer-dən gələn proqress
   const reportProgress = (playedSeconds: number, loadedSeconds: number = 0) => {
+    if (isBuffering && playedSeconds > 0) {
+        setIsBuffering(false); // Səs gəlməyə başlayanda bufferi söndür
+    }
     setCurrentTime(playedSeconds);
   };
 
@@ -204,7 +203,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         reportProgress,
         reportDuration,
         reportEnded,
-        reportReady,
         likedTracks,
         toggleLike,
         setQueue
