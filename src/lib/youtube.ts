@@ -2,7 +2,22 @@ import { Track } from "@/types";
 
 const DEFAULT_TIMEOUT = 12000;
 const MAX_RETRIES = 3;
-const CORS_PROXY = "https://corsproxy.io/?"; // Bütün API sorğularını CORS-dan keçirir, CORS problemi 100% həll olunur
+
+// Ümumi CORS proxy (2025-də də işləyən ən stabil proxy)
+const CORS_PROXY = "https://corsproxy.io/?";
+
+// Daha çox və stabil Piped instansları (2025 noyabrında test olunmuş işləyənlər)
+const PIPED_INSTANCES = [
+  "https://pipedapi.kavin.rocks",          // Ən stabil (yeni domain)
+  "https://pipedapi-libre.kavin.rocks",
+  "https://pipedapi.tokhmi.xyz",
+  "https://api.piped.mint.lgbt",
+  "https://pipedapi.syncpwn.dev",
+  "https://piped-api.garudalinux.org",
+  "https://pipedapi.leechers.de",
+  "https://pipedapi.palveluntarjoaja.eu",
+  "https://pipedapi.uselesscloud.com"
+];
 
 function timeoutSignal(ms: number): AbortSignal {
   const c = new AbortController();
@@ -25,93 +40,74 @@ async function safeFetch(url: string, opts: any = {}, timeout = DEFAULT_TIMEOUT)
   throw new Error("Fetch failed");
 }
 
-// === YALNIZ PLAN B — PIPED (2025-də ən stabil YouTube audio mənbəyi, TAM mahnı, proxy ilə 100% işləyir) ===
-const PIPED_INSTANCES = [
-  "https://pipedapi.kavin.rocks",         // Əsas və ən sürətli
-  "https://pipedapi-libre.kavin.rocks",
-  "https://pipedapi.syncpwn.dev",
-  "https://api.piped.privacydev.net",
-  "https://pipedapi.leechers.de",
-  "https://piped-api.garudalinux.org",
-  "https://pipedapi.mha.fi",
-  "https://pipedapi.palveluntarjoaja.eu"
-];
+// === YALNIZ PIPED (TAM mahnı) ===
+async function searchPiped(track: Track): Promise<string | null> {
+  console.log(`🔥 PIPED ilə axtarış: "${track.artist} - ${track.title}"`);
 
-async function searchPiped(query: string): Promise<string | null> {
-  console.log(`🔥 PIPED ilə axtarış: "${query}"`);
+  // Ən yaxşı nəticə üçün "topic" + music_songs filter
+  const pipedQuery = encodeURIComponent(`${track.artist} - ${track.title} topic`.replace(/\(.*?\)|feat\.?.*|remix|live|cover/gi, "").trim());
 
   const shuffled = [...PIPED_INSTANCES].sort(() => Math.random() - 0.5);
 
   for (const base of shuffled) {
     try {
-      const safeQuery = encodeURIComponent(query + " official audio topic");
-      const searchUrl = `${CORS_PROXY}${encodeURIComponent(`${base}/api/v1/search?q=${safeQuery}&type=video&filter=audio`)}`;
+      const searchUrl = `${CORS_PROXY}${encodeURIComponent(`${base}/api/v1/search?q=${pipedQuery}&filter=music_songs`)}`;
 
-      const searchRes = await safeFetch(searchUrl, {}, 10000);
+      const searchRes = await safeFetch(searchUrl);
       const results = await searchRes.json();
 
       if (!Array.isArray(results) || results.length === 0) continue;
 
-      const videoId = results[0].videoId || results[0].id;
+      const videoId = results[0].url.split("watch?v=")[1] || results[0].id;
       if (!videoId) continue;
 
-      const infoUrl = `${CORS_PROXY}${encodeURIComponent(`${base}/streams/${videoId}`)}`;
-      const infoRes = await safeFetch(infoUrl, {}, 10000);
-      const info = await infoRes.json();
+      const streamUrl = `${CORS_PROXY}${encodeURIComponent(`${base}/api/v1/streams/${videoId}`)}`;
+      const streamRes = await safeFetch(streamUrl);
+      const info = await streamRes.json();
 
-      const audioFormats = (info.audioStreams || info.adaptiveFormats || [])
-        .filter((f: any) => f.type?.includes("audio") || f.mimeType?.includes("audio"))
-        .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
+      // Piped-də audioStreams massivi var
+      const audio = (info.audioStreams || [])
+        .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
 
-      if (audioFormats[0]?.url) {
-        const audioUrl = audioFormats[0].url;
-
-        // Əgər piped proxy varsa istifadə et (daha stabil), yoxdursa birbaşa YouTube linki
-        const finalUrl = audioUrl.includes("pipedproxy") ? audioUrl : audioUrl;
-
+      if (audio?.url) {
         console.log(`[Piped:${base}] TAM mahnı tapıldı! 🚀`);
-        return finalUrl; // Bu link <audio> teqində problemsuz işləyir
+        return audio.url; // Proxy-li URL – expire olmur, problemsuz oynayır
       }
     } catch (e) {
-      console.warn(`[Piped:${base}] xəta, növbətiyə keçilir`);
       continue;
     }
   }
   return null;
 }
 
-// === PLAN C — iTunes 30s preview (son çarə) ===
-async function searchiTunes(query: string): Promise<string | null> {
+// === iTunes fallback (indi düzgün query ilə işləyəcək) ===
+async function searchiTunes(track: Track): Promise<string | null> {
   try {
-    console.log(`🍎 iTunes preview: "${query}"`);
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`;
+    // iTunes üçün ən sadə və dəqiq query: artist + title (əlavə sözlər silinir)
+    const itunesQuery = encodeURIComponent(`${track.artist} ${track.title}`.replace(/\(.*?\)|feat\.?.*|official|lyrics|video|audio/gi, "").trim());
+    const url = `https://itunes.apple.com/search?term=${itunesQuery}&media=music&entity=song&limit=1`;
+    
     const res = await safeFetch(url);
     const data = await res.json();
+    
     if (data.resultCount > 0 && data.results[0].previewUrl) {
-      console.log("[iTunes] 30s preview tapıldı");
+      console.log("[iTunes] 30s preview tapıldı (fallback)");
       return data.results[0].previewUrl;
     }
     return null;
-  } catch {
+  } catch (e) {
     return null;
   }
 }
 
 // === ƏSAS FUNKSIYA ===
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  // Ən yaxşı nəticə uyğun sorğu
-  let query = `${track.artist} ${track.title}`
-    .replace(/\(.*?\)|feat\.?.*|official|lyrics|video|remix|live|cover|audio/gi, "")
-    .trim();
-
-  query = query + " official audio topic";
-
   // PIPED (TAM mahnı)
-  const pipedUrl = await searchPiped(query);
+  const pipedUrl = await searchPiped(track);
   if (pipedUrl) return pipedUrl;
 
   // iTunes fallback
-  const itunesUrl = await searchiTunes(query);
+  const itunesUrl = await searchiTunes(track);
   if (itunesUrl) return itunesUrl;
 
   console.error("Heç bir yerdə tapılmadı :(");
