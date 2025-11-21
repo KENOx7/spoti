@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useRef, ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
 import { Track } from "@/types";
 import { storage } from "@/lib/storage";
+import { getYoutubeAudioUrl } from "@/lib/youtube"; // YENİ: YouTube funksiyası
 
 export type RepeatMode = "off" | "all" | "one";
 
@@ -11,6 +12,7 @@ interface PlayerContextType {
   currentTime: number;
   duration: number;
   isLoading: boolean;
+  isLoadingStream: boolean; // YENİ: YouTube axtarışı statusu
   error: string | null;
   repeatMode: RepeatMode;
   isShuffled: boolean;
@@ -32,308 +34,230 @@ interface PlayerContextType {
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
-export function PlayerProvider({ children }: { children: ReactNode }) {
+export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(storage.getCurrentTrack());
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolumeState] = useState(storage.getVolume());
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingStream, setIsLoadingStream] = useState(false); // YENİ
   const [error, setError] = useState<string | null>(null);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
   const [isShuffled, setIsShuffled] = useState(false);
-  const [queue, setQueue] = useState<Track[]>(storage.getQueue());
+  const [queue, setQueueState] = useState<Track[]>([]);
   const [originalQueue, setOriginalQueue] = useState<Track[]>([]);
   const [likedTracks, setLikedTracks] = useState<Track[]>(storage.getLikedTracks());
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const cleanupRef = useRef<(() => void) | null>(null);
 
-  // Cleanup audio on unmount
+  // Audio Elementini Yaradılması
   useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-        audioRef.current = null;
-      }
-      if (cleanupRef.current) {
-        cleanupRef.current();
+    audioRef.current = new Audio();
+    audioRef.current.volume = volume;
+
+    // Event Listeners
+    const audio = audioRef.current;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleDurationChange = () => setDuration(audio.duration);
+    const handleEnded = () => {
+      if (repeatMode === "one") {
+        audio.currentTime = 0;
+        audio.play();
+      } else {
+        playNext();
       }
     };
-  }, []);
+    const handleWaiting = () => setIsLoading(true);
+    const handleCanPlay = () => setIsLoading(false);
+    const handleError = () => {
+      setIsLoading(false);
+      setError("Mahnı oxunarkən xəta baş verdi.");
+      // Xəta olanda növbəti mahnıya keç (opsional)
+      // setTimeout(() => playNext(), 2000); 
+    };
 
-  // Save liked tracks to localStorage
-  useEffect(() => {
-    storage.saveLikedTracks(likedTracks);
-  }, [likedTracks]);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("durationchange", handleDurationChange);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("error", handleError);
 
-  // Save volume to localStorage
-  useEffect(() => {
-    storage.saveVolume(volume);
-  }, [volume]);
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("durationchange", handleDurationChange);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("error", handleError);
+      audio.pause();
+    };
+  }, [repeatMode]); // repeatMode asılılığı vacibdir
 
-  // Save queue to localStorage
-  useEffect(() => {
-    if (queue.length > 0) {
-      storage.saveQueue(queue);
-    }
-  }, [queue]);
-
-  // Save current track to localStorage
+  // Storage Updates
   useEffect(() => {
     storage.saveCurrentTrack(currentTrack);
   }, [currentTrack]);
 
-  // Cleanup previous audio and setup new one
-  const cleanupAudio = useCallback(() => {
+  useEffect(() => {
+    storage.saveVolume(volume);
     if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeEventListener("loadedmetadata", () => {});
-      audioRef.current.removeEventListener("timeupdate", () => {});
-      audioRef.current.removeEventListener("ended", () => {});
-      audioRef.current.removeEventListener("error", () => {});
-      audioRef.current.src = "";
-      audioRef.current = null;
+      audioRef.current.volume = volume;
     }
-    if (cleanupRef.current) {
-      cleanupRef.current();
-      cleanupRef.current = null;
-    }
-  }, []);
+  }, [volume]);
 
-  const playTrack = useCallback((track: Track) => {
-    if (!track || !track.audioUrl) {
-      setError("Invalid track or audio URL");
-      return;
-    }
+  useEffect(() => {
+    storage.saveLikedTracks(likedTracks);
+  }, [likedTracks]);
 
-    cleanupAudio();
+  // --- PLAY TRACK (AĞILLI VERSİYA) ---
+  const playTrack = async (track: Track) => {
     setError(null);
-    setIsLoading(true);
     setCurrentTrack(track);
-    setIsPlaying(false);
+    setIsPlaying(false); // Keçid zamanı dayandır
 
-    const audio = new Audio(track.audioUrl);
-    audio.volume = volume;
-    audio.preload = "metadata";
+    if (!audioRef.current) return;
 
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration || 0);
-      setIsLoading(false);
-    };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleEnded = () => {
-      if (repeatMode === "one") {
-        audio.currentTime = 0;
-        audio.play().catch((err) => {
-          console.error("Error replaying track:", err);
-          setError("Failed to replay track");
-        });
-      } else if (repeatMode === "all" || queue.length > 0) {
-        playNext();
-      } else {
-        setIsPlaying(false);
-        setCurrentTime(0);
+    // 1. Əgər mahnının linki varsa, dərhal oxu
+    if (track.audioUrl && track.audioUrl !== "") {
+      try {
+        audioRef.current.src = track.audioUrl;
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (err) {
+        console.error("Play error:", err);
+        setError("Oynatma xətası");
       }
-    };
+    } 
+    // 2. Əgər link yoxdursa, YouTube-dan axtar
+    else {
+      setIsLoadingStream(true);
+      const ytUrl = await getYoutubeAudioUrl(track);
+      
+      if (ytUrl) {
+        // Tapılan linki yadda saxla ki, növbəti dəfə axtarmasın
+        track.audioUrl = ytUrl; 
+        
+        // Yoxla: İstifadəçi hələ də eyni mahnıdırmı?
+        // (AudioRef-i yoxlamaq vacibdir)
+        if (audioRef.current) {
+           audioRef.current.src = ytUrl;
+           try {
+             await audioRef.current.play();
+             setIsPlaying(true);
+           } catch (err) {
+             console.error("YouTube Play error:", err);
+             setError("YouTube mənbəyi oxuna bilmədi");
+           }
+        }
+      } else {
+        setError("Musiqi mənbəyi tapılmadı");
+      }
+      setIsLoadingStream(false);
+    }
+  };
 
-    const handleError = (e: Event) => {
-      console.error("Audio error:", e);
-      setIsLoading(false);
-      setIsPlaying(false);
-      setError("Failed to load audio. Please try another track.");
-    };
-
-    const handleCanPlay = () => {
-      setIsLoading(false);
-    };
-
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError);
-    audio.addEventListener("canplay", handleCanPlay);
-
-    // Store cleanup function
-    cleanupRef.current = () => {
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
-      audio.removeEventListener("canplay", handleCanPlay);
-    };
-
-    audioRef.current = audio;
-
-    audio.play().catch((err) => {
-      console.error("Error playing audio:", err);
-      setIsLoading(false);
-      setError("Failed to play audio. User interaction may be required.");
-    });
-
-    setIsPlaying(true);
-  }, [volume, repeatMode, queue, cleanupAudio]);
-
-  const pauseTrack = useCallback(() => {
+  const pauseTrack = () => {
     if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
     }
-  }, []);
+  };
 
-  const togglePlayPause = useCallback(() => {
-    if (isPlaying) {
-      pauseTrack();
-    } else {
-      if (currentTrack && audioRef.current) {
-        audioRef.current.play().catch((err) => {
-          console.error("Error resuming playback:", err);
-          setError("Failed to resume playback");
-        });
-        setIsPlaying(true);
-      } else if (currentTrack) {
-        playTrack(currentTrack);
+  const togglePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
       }
+      setIsPlaying(!isPlaying);
     }
-  }, [isPlaying, currentTrack, pauseTrack, playTrack]);
+  };
 
-  const setVolume = useCallback((newVolume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, newVolume));
-    setVolumeState(clampedVolume);
+  const setVolume = (val: number) => setVolumeState(val);
+
+  const seekTo = (time: number) => {
     if (audioRef.current) {
-      audioRef.current.volume = clampedVolume;
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
     }
-  }, []);
-
-  const seekTo = useCallback((time: number) => {
-    if (audioRef.current) {
-      const clampedTime = Math.max(0, Math.min(duration, time));
-      audioRef.current.currentTime = clampedTime;
-      setCurrentTime(clampedTime);
-    }
-  }, [duration]);
-
-  const shuffleQueue = useCallback((tracks: Track[]): Track[] => {
-    const shuffled = [...tracks];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  }, []);
+  };
 
   const playNext = useCallback(() => {
     if (!currentTrack || queue.length === 0) return;
-
     const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
-    if (currentIndex === -1) return;
-
-    let nextIndex: number;
-    if (isShuffled) {
-      // In shuffle mode, pick random next track
-      const remainingTracks = queue.filter((_, idx) => idx !== currentIndex);
-      if (remainingTracks.length === 0) {
+    
+    // Əgər siyahının sonudursa və repeat all seçilibsə, başa qayıt
+    if (currentIndex === queue.length - 1) {
         if (repeatMode === "all") {
-          nextIndex = Math.floor(Math.random() * queue.length);
+            playTrack(queue[0]);
         } else {
-          return;
+            setIsPlaying(false); // Siyahı bitdi
         }
-      } else {
-        const randomTrack = remainingTracks[Math.floor(Math.random() * remainingTracks.length)];
-        nextIndex = queue.findIndex((t) => t.id === randomTrack.id);
-      }
     } else {
-      nextIndex = (currentIndex + 1) % queue.length;
+        playTrack(queue[currentIndex + 1]);
     }
-
-    playTrack(queue[nextIndex]);
-  }, [currentTrack, queue, isShuffled, repeatMode, playTrack]);
+  }, [currentTrack, queue, repeatMode]);
 
   const playPrevious = useCallback(() => {
     if (!currentTrack || queue.length === 0) return;
-
     const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
-    if (currentIndex === -1) return;
-
-    let prevIndex: number;
-    if (isShuffled) {
-      // In shuffle mode, pick random previous track
-      const remainingTracks = queue.filter((_, idx) => idx !== currentIndex);
-      if (remainingTracks.length === 0) {
-        if (repeatMode === "all") {
-          prevIndex = Math.floor(Math.random() * queue.length);
-        } else {
-          return;
-        }
-      } else {
-        const randomTrack = remainingTracks[Math.floor(Math.random() * remainingTracks.length)];
-        prevIndex = queue.findIndex((t) => t.id === randomTrack.id);
-      }
-    } else {
-      prevIndex = currentIndex === 0 ? queue.length - 1 : currentIndex - 1;
+    
+    // Əgər mahnının 3-cü saniyəsindən çox keçibsə, başa qaytar
+    if (currentTime > 3 && audioRef.current) {
+        audioRef.current.currentTime = 0;
+        return;
     }
 
-    playTrack(queue[prevIndex]);
-  }, [currentTrack, queue, isShuffled, repeatMode, playTrack]);
-
-  const toggleRepeat = useCallback(() => {
-    setRepeatMode((prev) => {
-      if (prev === "off") return "all";
-      if (prev === "all") return "one";
-      return "off";
-    });
-  }, []);
-
-  const toggleShuffle = useCallback(() => {
-    setIsShuffled((prev) => {
-      const newShuffled = !prev;
-      if (newShuffled && queue.length > 0) {
-        // Shuffle the queue
-        const shuffled = shuffleQueue(queue);
-        setQueue(shuffled);
-      } else if (!newShuffled && originalQueue.length > 0) {
-        // Restore original order
-        setQueue(originalQueue);
-      }
-      return newShuffled;
-    });
-  }, [queue, originalQueue, shuffleQueue]);
-
-  const setQueueWithShuffle = useCallback((tracks: Track[]) => {
-    setOriginalQueue(tracks);
-    if (isShuffled) {
-      setQueue(shuffleQueue(tracks));
+    if (currentIndex > 0) {
+      playTrack(queue[currentIndex - 1]);
     } else {
-      setQueue(tracks);
+        // İlk mahnıdırsa, sadəcə başa sarı
+        if (audioRef.current) audioRef.current.currentTime = 0;
     }
-  }, [isShuffled, shuffleQueue]);
+  }, [currentTrack, queue, currentTime]);
+
+  const toggleRepeat = () => {
+    setRepeatMode((prev) => (prev === "off" ? "all" : prev === "all" ? "one" : "off"));
+  };
+
+  const toggleShuffle = () => {
+    setIsShuffled(!isShuffled);
+  };
+
+  // Queue Management (Shuffle məntiqi)
+  const setQueueWithShuffle = useCallback((newQueue: Track[]) => {
+    setOriginalQueue(newQueue);
+    if (isShuffled) {
+      const shuffled = [...newQueue].sort(() => Math.random() - 0.5);
+      setQueueState(shuffled);
+    } else {
+      setQueueState(newQueue);
+    }
+  }, [isShuffled]);
+
+  useEffect(() => {
+    if (isShuffled) {
+      const shuffled = [...originalQueue].sort(() => Math.random() - 0.5);
+      setQueueState(shuffled);
+    } else {
+      setQueueState(originalQueue);
+    }
+  }, [isShuffled, originalQueue]);
 
   const toggleLike = useCallback((track: Track) => {
-    // Optimistic update - immediately update UI
     setLikedTracks((prevLiked) => {
       const isLiked = prevLiked.some((t) => t.id === track.id);
       if (isLiked) {
         return prevLiked.filter((t) => t.id !== track.id);
       } else {
-        return [...prevLiked, track];
+        return [...prevLiked, { ...track, liked: true }];
       }
     });
-    
-    // Note: In a real app, you'd make an API call here and rollback on error
-    // For now, localStorage persistence happens automatically via useEffect
   }, []);
-
-  // Update audio volume when volume state changes
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
 
   return (
     <PlayerContext.Provider
@@ -344,6 +268,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         currentTime,
         duration,
         isLoading,
+        isLoadingStream, // YENİ: Export edirik
         error,
         repeatMode,
         isShuffled,

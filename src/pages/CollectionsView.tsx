@@ -14,7 +14,7 @@ export default function CollectionsView() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session } = useAuth(); 
+  const { session } = useAuth();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -22,7 +22,6 @@ export default function CollectionsView() {
     setPlaylists(storage.getPlaylists());
   }, []);
 
-  // --- SPOTIFY IMPORT ---
   const handleImportSpotify = async () => {
     const accessToken = session?.provider_token;
 
@@ -30,7 +29,7 @@ export default function CollectionsView() {
       toast({
         variant: "destructive",
         title: "Xəta",
-        description: "Spotify bağlantısı tapılmadı. Zəhmət olmasa çıxış edib yenidən Spotify ilə daxil olun.",
+        description: "Spotify bağlantısı yoxdur. Yenidən giriş edin.",
       });
       return;
     }
@@ -42,14 +41,10 @@ export default function CollectionsView() {
       if (spotifyPlaylists.length === 0) {
         toast({ title: "Məlumat", description: "Spotify-da playlist tapılmadı." });
       } else {
-        // Mövcud playlisterlə yenilərini birləşdiririk
         const currentPlaylists = storage.getPlaylists();
-        
-        // Eyni ID-li playlistləri təkrar yükləməmək üçün filtr
         const uniqueNewPlaylists = spotifyPlaylists.filter(
           newP => !currentPlaylists.some(currP => currP.id === newP.id)
         );
-
         const newAllPlaylists = [...currentPlaylists, ...uniqueNewPlaylists];
         
         storage.savePlaylists(newAllPlaylists);
@@ -62,11 +57,7 @@ export default function CollectionsView() {
       }
     } catch (error) {
       console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Xəta",
-        description: "Import zamanı xəta baş verdi.",
-      });
+      toast({ variant: "destructive", title: "Xəta", description: "Import xətası." });
     } finally {
       setIsImporting(false);
     }
@@ -77,25 +68,16 @@ export default function CollectionsView() {
       const updated = playlists.filter((p) => p.id !== playlistId);
       storage.savePlaylists(updated);
       setPlaylists(updated);
-      toast({
-        title: t("playlistDeleted"),
-        description: t("playlistDeleted"),
-      });
+      toast({ title: t("playlistDeleted"), description: t("playlistDeleted") });
     } catch (error) {
-      console.error("Error deleting playlist:", error);
-      toast({
-        title: t("error"),
-        description: t("error"),
-        variant: "destructive",
-      });
+      toast({ title: t("error"), variant: "destructive" });
     }
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-20">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">{t("collections")}</h1>
-        
         <div className="flex gap-2 w-full sm:w-auto">
           <Button 
             variant="secondary" 
@@ -103,14 +85,9 @@ export default function CollectionsView() {
             disabled={isImporting}
             className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white"
           >
-            {isImporting ? (
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Import className="mr-2 h-4 w-4" />
-            )}
+            {isImporting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Import className="mr-2 h-4 w-4" />}
             {isImporting ? "Yüklənir..." : "Spotify İdxal"}
           </Button>
-
           <Button onClick={() => navigate("/make-playlist")} className="flex-1 sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
             {t("createPlaylist")}
@@ -133,10 +110,13 @@ export default function CollectionsView() {
                     alt={playlist.name}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  
+                  {/* MOBİL DÜZƏLİŞ: opacity-100 (mobildə görünür), sm:opacity-0 (PC-də gizli) */}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 
+                                  opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
                     <Button
                       size="icon"
-                      className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
+                      className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/playlist/${playlist.id}`);
@@ -151,7 +131,7 @@ export default function CollectionsView() {
                         e.stopPropagation();
                         handleDeletePlaylist(playlist.id);
                       }}
-                      className="h-10 w-10 rounded-full shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75"
+                      className="h-10 w-10 rounded-full shadow-lg"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
