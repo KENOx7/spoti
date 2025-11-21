@@ -40,30 +40,30 @@ export default function Index() {
   };
 
   return (
-    // DÜZƏLİŞ: padding (px-4) və bottom-padding (pb-32) əlavə edildi
-    <div className="space-y-6 pb-32 px-4 sm:px-6 md:px-8 animate-in fade-in duration-500">
+    // DÜZƏLİŞ: w-full və overflow-x-hidden (ekrandan çıxmanın qarşısını alır)
+    <div className="w-full overflow-x-hidden space-y-6 pb-32 px-4 sm:px-6 md:px-8 animate-in fade-in duration-500">
       
-      {/* Salamlama - Mobil üçün font kiçildildi (text-2xl) */}
-      <section className="pt-6 pb-2">
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent pb-2 leading-tight">
+      {/* Salamlama */}
+      <section className="pt-6">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent leading-tight">
           {t("welcomeUser")}, {isGuest ? t("guest") : displayName} 👋
         </h1>
-        <p className="text-muted-foreground mt-1 sm:mt-3 text-sm sm:text-lg">
+        <p className="text-muted-foreground mt-2 text-sm sm:text-lg">
           {t("enterMusicWorld")}
         </p>
       </section>
 
       {/* Liked Songs */}
       {!isGuest && (
-        <section>
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h2 className="text-xl sm:text-3xl font-bold">{t("likedSongs")}</h2>
+        <section className="min-w-0">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg sm:text-2xl font-bold truncate">{t("likedSongs")}</h2>
           </div>
-          {/* DÜZƏLİŞ: maxDesktopItems=5 edildi (Əvvəl 1 idi və çox böyük görünürdü) */}
           <PlaylistCarousel
             playlists={[likedSongsPlaylist]}
-            showGridOnDesktop={true}
-            maxDesktopItems={5} 
+            // DÜZƏLİŞ: maxDesktopItems={1} olanda grid layout tək kartı böyüdürdü.
+            // Bunu ləğv etdik, artıq həmişə normal ölçüdə olacaq.
+            showGridOnDesktop={false} 
             onPlaylistClick={() => navigate("/liked")}
           />
         </section>
@@ -71,39 +71,35 @@ export default function Index() {
 
       {/* My Playlists */}
       {playlists.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h2 className="text-xl sm:text-3xl font-bold">{t("myPlaylists")}</h2>
+        <section className="min-w-0">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg sm:text-2xl font-bold truncate">{t("myPlaylists")}</h2>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => navigate("/collections")}
-              className="hidden sm:flex"
+              className="text-xs sm:text-sm"
             >
               {t("collections")}
             </Button>
           </div>
           <PlaylistCarousel
             playlists={playlists}
-            showGridOnDesktop={true}
-            maxDesktopItems={5}
+            onPlaylistClick={(p) => navigate(`/playlist/${p.id}`)}
           />
-          {playlists.length > 5 && (
-            <div className="mt-4 text-center sm:hidden">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/collections")}>
-                {t("collections")} ({playlists.length})
-              </Button>
-            </div>
-          )}
         </section>
       )}
 
       {/* Trending Songs */}
-      <section>
-        <h2 className="text-xl sm:text-3xl font-bold mb-3 sm:mb-4">{t("trending")}</h2>
-        <div className="space-y-1">
+      <section className="min-w-0">
+        <h2 className="text-lg sm:text-2xl font-bold mb-3 truncate">{t("trending")}</h2>
+        {/* DÜZƏLİŞ: min-w-0 container */}
+        <div className="space-y-1 w-full min-w-0">
           {allTracks.map((track, index) => (
-            <TrackItem key={track.id} track={track} index={index} />
+            // TrackItem-ə style vermək lazım deyil, əsas odur ki, container onu sıxsın
+            <div key={track.id} className="w-full min-w-0">
+               <TrackItem track={track} index={index} />
+            </div>
           ))}
         </div>
       </section>
