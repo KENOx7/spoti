@@ -1,11 +1,14 @@
 import { Track, Playlist } from "@/types";
 
+const SPOTIFY_API = "https://api.spotify.com/v1";
+
 // Spotify-dan gələn Track formatını bizim Track formatına çevirir
-const mapSpotifyTrackToAppTrack = (spotifyTrack: any): Track => {
-  const track = spotifyTrack.track;
-  
-  // Bəzən track null ola bilər (məsələn, yerli fayllar), ona görə yoxlayırıq
-  if (!track) return null as any;
+const mapSpotifyTrackToAppTrack = (rawSpotifyTrack: any): Track | null => {
+  // Playlist end-pointində item.track olur, digər hallarda isə birbaşa track obyektini ala bilərik
+  const track = rawSpotifyTrack?.track ?? rawSpotifyTrack;
+
+  // Episode və ya null gələn halları atırıq
+  if (!track || track.type !== "track") return null;
 
   return {
     id: track.id || `spotify-${Math.random()}`, // ID yoxdursa uydururuq
@@ -14,11 +17,42 @@ const mapSpotifyTrackToAppTrack = (spotifyTrack: any): Track => {
     album: track.album ? track.album.name : "",
     duration: track.duration_ms ? Math.floor(track.duration_ms / 1000) : 0,
     // Şəkil yoxdursa standart şəkil qoyuruq
-    coverUrl: track.album?.images?.[0]?.url || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60",
+    coverUrl:
+      track.album?.images?.[0]?.url ||
+      "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60",
     // Əsas Düzəliş: preview_url yoxdursa, boş string qoyuruq (null qaytarmırıq)
-    audioUrl: track.preview_url || "", 
-    liked: false
+    audioUrl: track.preview_url || "",
+    liked: false,
   };
+};
+
+const fetchPlaylistTracks = async (playlistId: string, accessToken: string): Promise<Track[]> => {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+  };
+
+  let nextUrl = `${SPOTIFY_API}/playlists/${playlistId}/tracks?limit=100&market=from_token`;
+  const tracks: Track[] = [];
+
+  while (nextUrl) {
+    const response = await fetch(nextUrl, { headers });
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      console.error("Spotify playlist tracks error:", response.status, errorBody);
+      throw new Error(`Playlist tracks fetch failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const mappedTracks = (data.items ?? [])
+      .map((item: any) => mapSpotifyTrackToAppTrack(item))
+      .filter((track): track is Track => track !== null);
+
+    tracks.push(...mappedTracks);
+    nextUrl = data.next;
+  }
+
+  return tracks;
 };
 
 // İstifadəçinin Spotify Playlisterini gətirir
@@ -48,26 +82,13 @@ export const fetchSpotifyPlaylists = async (accessToken: string): Promise<Playli
         if (!item) return null;
 
         try {
-          // Mahnıları çək
-          const tracksResponse = await fetch(item.tracks.href, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
-          
-          if (!tracksResponse.ok) return null;
-
-          const tracksData = await tracksResponse.json();
-          
-          // DÜZƏLİŞ: Filteri yumşaltdıq. Artıq preview_url olmasa da qəbul edir.
-          const mappedTracks = tracksData.items
-            .map(mapSpotifyTrackToAppTrack)
-            .filter((t: Track) => t !== null); // Yalnız null olanları (xətalı) atırıq
-
+          const playlistTracks = await fetchPlaylistTracks(item.id, accessToken);
           return {
             id: item.id,
             name: item.name,
             description: item.description || "Spotify Playlist",
             coverUrl: item.images?.[0]?.url || "",
-            tracks: mappedTracks,
+            tracks: playlistTracks,
             createdAt: new Date(),
           };
         } catch (err) {
