@@ -1,4 +1,3 @@
-// LikedSongsView.tsx
 import { TrackItem } from "@/components/TrackItem";
 import { useLanguage } from "@/context/language-context";
 import { Heart, Play } from "lucide-react";
@@ -11,9 +10,9 @@ export default function LikedSongsView() {
   const { t } = useLanguage();
   const { likedTracks, setQueue, playTrack } = usePlayer();
 
-  // Set queue to liked tracks when component mounts or liked tracks change
+  // Mahnı siyahısını queue-ya atmaq
   useEffect(() => {
-    if (likedTracks.length > 0) {
+    if (likedTracks && likedTracks.length > 0) {
       setQueue(likedTracks);
     }
   }, [likedTracks, setQueue]);
@@ -23,10 +22,7 @@ export default function LikedSongsView() {
       setQueue(likedTracks);
       playTrack(likedTracks[0]);
     }
-  }; 
-
-  // SİLİNDİ: useMemo bloku (artıq ehtiyac yoxdur)
-  // const likedTracks = useMemo(...)
+  };
 
   return (
     <div className="space-y-6">
@@ -61,10 +57,8 @@ export default function LikedSongsView() {
             <Heart className="h-16 w-16 text-muted-foreground" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold">{t("noLikedSongs")}</h2>
-            <p className="text-muted-foreground max-w-md">
-              {t("likedSongsDescription")}
-            </p>
+            <h2 className="text-xl font-semibold">{t("noLikedSongs") || "Bəyənilən mahnı yoxdur"}</h2>
+            <p className="text-muted-foreground">{t("addSongsToLibrary") || "Mahnıları bəyənərək kitabxananıza əlavə edin."}</p>
           </div>
         </div>
       )}
