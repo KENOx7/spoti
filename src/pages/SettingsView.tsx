@@ -1,14 +1,14 @@
 // src/pages/SettingsView.tsx
 import { Settings, Palette, Globe, Bell } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Switch } from "ui/switch";
+import { Label } from "ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "ui/select";
 import { useTheme } from "@/context/theme-provider";
 import { useLanguage } from "@/context/language-context";
 import { PageHeader } from "@/components/PageHeader";

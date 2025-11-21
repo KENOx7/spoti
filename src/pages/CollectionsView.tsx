@@ -1,12 +1,12 @@
 import { useLanguage } from "@/context/language-context";
-import { Button } from "@/components/ui/button";
+import { Button } from "ui/button";
 import { Plus, Trash2, Play, Import, RefreshCw } from "lucide-react"; // Yeni ikonlar
 import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "ui/card";
 import { useAuth } from "@/context/auth-context";
 import { fetchSpotifyPlaylists } from "@/lib/spotify"; // YENİ
 

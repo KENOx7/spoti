@@ -5,7 +5,8 @@ export interface Track {
   album: string;
   duration: number; // in seconds
   coverUrl: string;
-  audioUrl: string;
+  audioUrl?: string;
+  spotifyUri?: string;
   liked?: boolean;
 }
 

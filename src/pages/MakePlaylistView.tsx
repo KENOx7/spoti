@@ -1,8 +1,8 @@
 // src/pages/MakePlaylistView.tsx
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "ui/button";
+import { Input } from "ui/input";
+import { Textarea } from "ui/textarea";
 import { PlusCircle, Music } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { storage } from "@/lib/storage";

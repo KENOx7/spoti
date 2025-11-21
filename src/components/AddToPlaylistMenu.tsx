@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Track } from "@/types";
-import { Button } from "@/components/ui/button";
+import { Button } from "ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "ui/dropdown-menu";
 import { Plus, Music, Play } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";

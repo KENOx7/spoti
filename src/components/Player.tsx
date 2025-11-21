@@ -1,7 +1,7 @@
 // src/components/Player.tsx
 import { usePlayer } from "@/context/player-context";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import { Button } from "ui/button";
+import { Slider } from "ui/slider";
 import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Shuffle, Repeat, Repeat1 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Track } from "@/types"; 

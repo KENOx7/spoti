@@ -25,9 +25,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const guestStatus = localStorage.getItem("guest_mode") === "true";
     if (guestStatus) setIsGuest(true);
 
+    const handleOAuthCallback = async () => {
+      if (typeof window === "undefined") return;
+      const url = new URL(window.location.href);
+      const hasCode = url.searchParams.has("code");
+
+      if (!hasCode) return;
+
+      try {
+        const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        if (error) throw error;
+
+        url.searchParams.delete("code");
+        url.searchParams.delete("state");
+        const cleanedSearch = url.searchParams.toString();
+        const cleanUrl = `${url.origin}${url.pathname}${cleanedSearch ? `?${cleanedSearch}` : ""}`;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } catch (error) {
+        console.error("OAuth callback error:", error);
+      }
+    };
+
     // 2. Sessiyanı yoxla
     const initAuth = async () => {
       try {
+        await handleOAuthCallback();
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
