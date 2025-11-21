@@ -82,32 +82,44 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // --- Main Logic ---
 
-  const playTrack = async (track: Track) => {
-    setIsPlaying(false); // Keçid edərkən dayandır
-    setIsBuffering(true);
+  // src/context/player-context.tsx faylının playTrack funksiyasını tapın və belə dəyişin:
 
-    let trackToPlay = { ...track };
+// ... (yuxarıdakı kodlar eynidir)
 
-    // Əgər videoUrl yoxdursa və ya sadəcə Spotify-dan gəlibsə, YouTube ID axtar
-    if (!trackToPlay.videoUrl) {
-      try {
-        const videoId = await getYoutubeId(track);
-        if (videoId) {
-          trackToPlay.videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-        } else {
-           // Fallback: Əgər tapılmasa, axtarış linki qoy (ReactPlayer bunu da oynada bilir)
-           trackToPlay.videoUrl = `ytsearch:${track.artist} ${track.title} audio`;
-        }
-      } catch (error) {
-        console.error("YouTube ID tapılmadı:", error);
+const playTrack = async (track: Track) => {
+  setIsPlaying(false);
+  setIsBuffering(true);
+
+  let trackToPlay = { ...track };
+
+  // Əgər videoUrl yoxdursa, tapmağa çalışırıq
+  if (!trackToPlay.videoUrl) {
+    try {
+      // 1. API vasitəsilə ID almağa çalış
+      const videoId = await getYoutubeId(track);
+      
+      if (videoId) {
+        // Əgər tapılsa, birbaşa link qoyuruq (Daha sürətlidir)
+        trackToPlay.videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      } else {
+         // 2. FALLBACK: Əgər API-lər işləməsə (CORS/502), ReactPlayer-in öz axtarışını işlət
+         // Bu halda brauzer xəta versə də, musiqi çalınacaq.
+         console.log("YouTube API xətası: 'ytsearch' rejiminə keçildi.");
+         trackToPlay.videoUrl = `ytsearch:${track.artist} - ${track.title} audio`;
       }
+    } catch (error) {
+      // Hər ehtimala qarşı fallback
+      trackToPlay.videoUrl = `ytsearch:${track.artist} - ${track.title} audio`;
     }
+  }
 
-    setCurrentTrack(trackToPlay);
-    setIsBuffering(false);
-    setIsPlaying(true);
-  };
+  setCurrentTrack(trackToPlay);
+  // isBuffering-i ReactPlayer özü onReady olanda false edəcək, amma biz burada da edə bilərik
+  // setIsBuffering(false); 
+  setIsPlaying(true);
+};
 
+// ... (aşağıdakı kodlar eynidir)
   const pauseTrack = () => setIsPlaying(false);
   
   const togglePlayPause = () => setIsPlaying((prev) => !prev);
