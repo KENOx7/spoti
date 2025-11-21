@@ -1,96 +1,162 @@
 import { Track } from "@/types";
 
-// Timeout helper
-function timeoutSignal(ms: number): AbortSignal {
-  const c = new AbortController();
-  setTimeout(() => c.abort(), ms);
-  return c.signal;
+// === KONFİQURASİYA ===
+const DEFAULT_TIMEOUT = 7000; 
+
+// === PROXY SİSTEMİ (Biri işləməsə, o biri işə düşəcək) ===
+// Bu ən vacib hissədir. Brauzer blokunu aşmaq üçün.
+const PROXY_LIST = [
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+];
+
+// === COBALT INSTANCES (YouTube kilidini qıran serverlər) ===
+const COBALT_INSTANCES = [
+  "https://cobalt.sipmaker.net", // Tez-tez işləyir
+  "https://cobalt.tools",        // Rəsmi
+  "https://co.wuk.sh",
+  "https://api.cobalt.7io.org",
+  "https://cobalt.kwiatekmiki.pl"
+];
+
+// === PIPED SERVERS (Sadəcə ID tapmaq üçün) ===
+const PIPED_SERVERS = [
+  "https://pipedapi.kavin.rocks",
+  "https://api.piped.ot.ax",
+  "https://api.piped.projectsegfau.lt",
+  "https://pipedapi.adminforge.de"
+];
+
+// === KÖMƏKÇİLER ===
+function timeoutSignal(ms: number) {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
 }
 
-// Təhlükəsiz fetch (Sadələşdirilmiş)
-async function safeFetch(url: string, opts: any = {}, timeout = 8000): Promise<Response> {
-  try {
-    const signal = timeoutSignal(timeout);
-    const res = await fetch(url, { ...opts, signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res;
-  } catch (err) {
-    throw err;
-  }
-}
-
-// === PLAN A: Saavn.me (Tam Mahnı) ===
-async function searchSaavnMe(query: string): Promise<string | null> {
-  try {
-    console.log(`🔍 Plan A (Saavn): "${query}"`);
-    const url = `https://saavn.me/search/songs?query=${encodeURIComponent(query)}&page=1&limit=1`;
-    const res = await safeFetch(url);
-    const json = await res.json();
-
-    if (json?.status === "SUCCESS" && json.data?.results?.length > 0) {
-      const song = json.data.results[0];
-      const urls = song.downloadUrl || song.download_urls;
-
-      if (urls && urls.length > 0) {
-        // Ən yüksək keyfiyyəti tapırıq
-        const best = urls.find((d: any) => d.quality === "320kbps") 
-                  || urls.find((d: any) => d.quality === "160kbps") 
-                  || urls[urls.length - 1];
-
-        const finalUrl = best?.link || best?.url;
-        if (finalUrl) {
-          console.log(`✅ Saavn Tapdı!`);
-          return finalUrl;
-        }
-      }
+// Proxy Rotasiyası ilə Fetch
+// Bu funksiya bir proxy işləməyəndə avtomatik o birinə keçir
+async function fetchWithProxyRotation(url: string, options: any = {}) {
+  for (const proxyGen of PROXY_LIST) {
+    try {
+      const proxyUrl = proxyGen(url);
+      // console.log(`Trying proxy: ${proxyUrl}`);
+      const res = await fetch(proxyUrl, { 
+        ...options, 
+        signal: timeoutSignal(5000) 
+      });
+      if (res.ok) return res;
+    } catch (e) {
+      continue;
     }
-    return null;
-  } catch (err) {
-    return null;
   }
+  throw new Error("Bütün proxylər selbəst buraxıldı.");
 }
 
-// === PLAN B: iTunes (100% İşləyən Fallback - 30s Preview) ===
+function cleanQuery(artist: string, title: string): string {
+  return `${artist} - ${title}`
+    .replace(/feat\.|ft\.|official|video|audio|lyrics/gi, "")
+    .trim();
+}
+
+// === 1. ID AXTARIŞI (Piped vasitəsilə) ===
+async function findVideoId(query: string): Promise<string | null> {
+  const searchQuery = `${query} audio`;
+  
+  for (const base of PIPED_SERVERS) {
+    try {
+      const targetUrl = `${base}/api/v1/search?q=${encodeURIComponent(searchQuery)}&filter=all`;
+      
+      // Axtarış üçün proxy rotasiyasını işlədirik
+      const res = await fetchWithProxyRotation(targetUrl);
+      const data = await res.json();
+
+      if (!Array.isArray(data)) continue;
+
+      // 1-15 dəqiqəlik videoları seçirik (mahnı üçün)
+      const video = data.find((v: any) => 
+        !v.isShort && 
+        v.duration > 60 && 
+        v.duration < 900
+      );
+
+      if (video) {
+        const id = video.url.split("v=")[1];
+        console.log(`🎯 Video Tapıldı: ${id} (${base})`);
+        return id;
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+  return null;
+}
+
+// === 2. COBALT İLƏ LİNK GENERASİYASI (MAGİC) ===
+async function getCobaltStream(videoId: string): Promise<string | null> {
+  const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+  for (const instance of COBALT_INSTANCES) {
+    try {
+      console.log(`⛏️ Cobalt işə düşdü: ${instance}`);
+      
+      // Cobalt POST request tələb edir
+      const res = await fetch(`${instance}/api/json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          url: youtubeUrl,
+          isAudioOnly: true, // Yalnız səs
+          aFormat: "mp3"     // MP3 formatında
+        }),
+        signal: timeoutSignal(8000)
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        console.log(`✅ TAM MAHNı LİNKİ: ${data.url}`);
+        return data.url;
+      }
+    } catch (e) {
+      // console.log(`Cobalt fail: ${instance}`);
+      continue;
+    }
+  }
+  return null;
+}
+
+// === 3. ITUNES (Ehtiyat) ===
 async function searchiTunes(query: string): Promise<string | null> {
   try {
-    console.log(`🍎 Plan B (iTunes): "${query}"`);
-    
-    // iTunes axtarışını dəqiqləşdiririk (Mahnı adı + Artist)
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`;
-    
-    // iTunes çox sürətlidir, qısa timeout bəs edir
-    const res = await safeFetch(url, {}, 5000);
+    const res = await fetch(url);
     const data = await res.json();
-    
-    if (data.resultCount > 0 && data.results[0].previewUrl) {
-      console.log("✅ iTunes Preview Tapıldı");
-      return data.results[0].previewUrl;
-    }
-    return null;
-  } catch {
+    return data.results[0]?.previewUrl || null;
+  } catch (e) {
     return null;
   }
 }
 
-// === ƏSAS FUNKSİYA ===
+// === ƏSAS SYSTEM ===
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  // Sorğunun təmizlənməsi
-  const cleanTitle = track.title
-    .replace(/\(.*?\)/g, "") 
-    .replace(/feat\..*/i, "") 
-    .replace(/ft\..*/i, "")
-    .trim();
+  const baseQuery = cleanQuery(track.artist, track.title);
+  console.log(`🚀 Başlayır: ${baseQuery}`);
 
-  const query = `${cleanTitle} ${track.artist}`;
+  // 1. Video ID tap
+  const videoId = await findVideoId(baseQuery);
 
-  // 1. Saavn yoxla (Tam mahnı üçün)
-  const saavn = await searchSaavnMe(query);
-  if (saavn) return saavn;
+  if (videoId) {
+    // 2. Cobalt ilə təmiz link al
+    const fullUrl = await getCobaltStream(videoId);
+    if (fullUrl) return fullUrl;
+  }
 
-  // 2. iTunes yoxla (Ən azından səs gəlsin)
-  const itunes = await searchiTunes(query);
-  if (itunes) return itunes;
-
-  console.error("❌ Mahnı heç bir yerdə tapılmadı.");
-  return null;
+  // 3. Heç biri işləməzsə iTunes
+  console.warn("⚠️ Tam versiya tapılmadı, iTunes yoxlanılır...");
+  return await searchiTunes(baseQuery);
 }
