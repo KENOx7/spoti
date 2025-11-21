@@ -1,82 +1,80 @@
 import { Track } from "@/types";
 
-// Ehtiyat üçün birbaşa brauzerdən işləyəcək serverlər (CORS açıq olanlar)
-const DIRECT_FALLBACK_SERVERS = [
-  "https://api.piped.ot.ax",
+// CORS Proxy (Körpü) - Bu, CORS xətasını ləğv edir
+const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+
+// Ən dözümlü serverlərin siyahısı
+const SERVERS = [
   "https://pipedapi.kavin.rocks",
-  "https://api.piped.projectsegfau.lt"
+  "https://api.piped.projectsegfau.lt",
+  "https://pipedapi.moomoo.me",
+  "https://pipedapi.drgns.space",
+  "https://pipedapi.adminforge.de",
+  "https://api.piped.privacydev.net",
+  "https://piped-api.lunar.icu"
 ];
 
-// Köməkçi funksiya: Birbaşa brauzerdən axtarış (Plan B)
-async function searchDirectly(track: Track): Promise<string | null> {
-  const query = `${track.title} ${track.artist} official audio`;
+async function fetchWithProxy(url: string) {
+  // URL-i proxy vasitəsilə çağırırıq
+  const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
   
-  for (const base of DIRECT_FALLBACK_SERVERS) {
-    try {
-      console.log(`Plan B: Trying direct fetch from ${base}`);
-      
-      // 1. Axtarış
-      const searchRes = await fetch(`${base}/search?q=${encodeURIComponent(query)}&filter=music_songs`);
-      if (!searchRes.ok) continue;
-      const searchData = await searchRes.json();
-      if (!searchData.items || searchData.items.length === 0) continue;
-      
-      const videoId = searchData.items[0].url.split("/watch?v=")[1];
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniyə vaxt
 
-      // 2. Stream
-      const streamRes = await fetch(`${base}/streams/${videoId}`);
-      if (!streamRes.ok) continue;
-      const streamData = await streamRes.json();
-
-      const audioStreams = streamData.audioStreams;
-      if (audioStreams && audioStreams.length > 0) {
-        const m4a = audioStreams.find((s: any) => s.mimeType === "audio/mp4");
-        return m4a ? m4a.url : audioStreams[0].url;
-      }
-    } catch (e) {
-      continue;
-    }
+  try {
+    const response = await fetch(proxyUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) throw new Error("Proxy error");
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
   }
-  return null;
 }
 
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  try {
-    const query = `${track.title} ${track.artist} official audio`;
-    console.log("Plan A: Asking Vercel API...");
+  // Axtarış sorğusu
+  const query = `${track.title} ${track.artist} official audio`;
 
-    // --- PLAN A: VERCEL API (Invidious) ---
-    const searchRes = await fetch(`/api/youtube?type=search&q=${encodeURIComponent(query)}`);
-    
-    if (!searchRes.ok) {
-      throw new Error("API Error"); // Plan B-yə keç
+  // Serverləri qarışdırırıq (Random)
+  const shuffledServers = [...SERVERS].sort(() => Math.random() - 0.5);
+
+  for (const base of shuffledServers) {
+    try {
+      console.log(`Trying server: ${base}`);
+
+      // 1. Axtarış (Proxy ilə)
+      const searchUrl = `${base}/search?q=${encodeURIComponent(query)}&filter=music_songs`;
+      const searchData = await fetchWithProxy(searchUrl);
+
+      if (!searchData.items || searchData.items.length === 0) continue;
+
+      const videoId = searchData.items[0].url.split("/watch?v=")[1];
+
+      // 2. Stream (Proxy ilə)
+      const streamUrl = `${base}/streams/${videoId}`;
+      const streamData = await fetchWithProxy(streamUrl);
+
+      const audioStreams = streamData.audioStreams;
+      if (!audioStreams || audioStreams.length === 0) continue;
+
+      // .m4a formatını tapırıq (iPhone və Web üçün ən yaxşısı)
+      const m4a = audioStreams.find((s: any) => s.mimeType === "audio/mp4");
+      
+      // Əgər m4a yoxdursa, ən yüksək keyfiyyətli hər hansı birini götür
+      const bestAudio = m4a || audioStreams.sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
+
+      if (bestAudio) {
+        console.log("Audio found!", bestAudio.url);
+        return bestAudio.url;
+      }
+
+    } catch (error) {
+      console.warn(`Server ${base} failed, trying next...`);
+      continue;
     }
-    
-    const searchData = await searchRes.json();
-    if (!searchData || searchData.length === 0) throw new Error("No results");
-
-    const videoId = searchData[0].videoId;
-
-    // Stream alırıq
-    const streamRes = await fetch(`/api/youtube?type=stream&id=${videoId}`);
-    if (!streamRes.ok) throw new Error("Stream Error");
-    
-    const videoData = await streamRes.json();
-    
-    // Invidious formatından audio tapırıq
-    const adaptiveFormats = videoData.adaptiveFormats;
-    if (adaptiveFormats) {
-      const audio = adaptiveFormats
-        .filter((s: any) => s.type.includes("audio"))
-        .sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
-      if (audio) return audio.url;
-    }
-
-    throw new Error("Audio not found in API response");
-
-  } catch (error) {
-    console.warn("Plan A failed, switching to Plan B (Direct Browser Fetch)...");
-    // --- PLAN B: BROWSER DIRECT FETCH ---
-    return await searchDirectly(track);
   }
+
+  console.error("Heç bir serverdən nəticə alınmadı.");
+  return null;
 }
