@@ -14,7 +14,7 @@ export default function CollectionsView() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getSpotifyAccessToken } = useAuth(); // Tokeni buradan alacağıq
+  const { session } = useAuth(); // Tokeni buradan alacağıq
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isImporting, setIsImporting] = useState(false); // Yüklənmə statusu
 
@@ -25,7 +25,7 @@ export default function CollectionsView() {
   // --- SPOTIFY IMPORT ---
   const handleImportSpotify = async () => {
     // Tokeni yoxlayırıq (provider_token)
-    const accessToken = await getSpotifyAccessToken();
+    const accessToken = session?.provider_token;
 
     if (!accessToken) {
       toast({

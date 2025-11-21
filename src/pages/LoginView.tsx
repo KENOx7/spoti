@@ -16,19 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const SPOTIFY_SCOPES = [
-  "user-read-email",
-  "user-read-private",
-  "streaming",
-  "app-remote-control",
-  "user-read-playback-state",
-  "user-modify-playback-state",
-  "user-read-currently-playing",
-  "playlist-read-private",
-  "playlist-read-collaborative",
-  "user-library-read",
-].join(" ");
-
 // Şəkil
 const backgroundImage = new URL("./Raper album cover.jpg", import.meta.url).href;
 
@@ -55,7 +42,9 @@ export default function LoginView() {
       setIsLoading(true);
       
       // Spotify üçün xüsusi icazələr (scopes)
-      const scopes = provider === "spotify" ? SPOTIFY_SCOPES : undefined;
+      const scopes = provider === 'spotify' 
+        ? 'user-read-email playlist-read-private playlist-read-collaborative user-library-read'
+        : undefined;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,

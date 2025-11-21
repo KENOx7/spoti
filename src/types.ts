@@ -7,8 +7,9 @@ export interface Track {
   coverUrl: string;
   audioUrl: string;
   liked?: boolean;
-  source?: "local" | "spotify";
-  spotifyUri?: string | null;
+  // Optional provider metadata (e.g. spotify) and original URI
+  provider?: "spotify" | "local" | string;
+  uri?: string;
 }
 
 export interface Playlist {

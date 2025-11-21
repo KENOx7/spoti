@@ -2,29 +2,35 @@ import { Track, Playlist } from "@/types";
 
 const SPOTIFY_API = "https://api.spotify.com/v1";
 
-// Spotify-dan gələn Track formatını bizim Track formatına çevirir
-const mapSpotifyTrackToAppTrack = (rawSpotifyTrack: any): Track | null => {
-  // Playlist end-pointində item.track olur, digər hallarda isə birbaşa track obyektini ala bilərik
-  const track = rawSpotifyTrack?.track ?? rawSpotifyTrack;
+// Yardımçı: unknown tipindən təhlükəsiz sahələri oxumaq üçün
+const safeGet = <T>(val: unknown, fallback: T): T => {
+  return (val as any) ?? fallback;
+};
 
-  // Episode və ya null gələn halları atırıq
-  if (!track || track.type !== "track") return null;
+// Spotify-dan gələn Track formatını bizim Track formatına çevirir
+const mapSpotifyTrackToAppTrack = (rawSpotifyTrack: unknown): Track | null => {
+  const asObj = rawSpotifyTrack as Record<string, any> | undefined;
+  const track = asObj?.track ?? asObj;
+
+  if (!track || (track.type && track.type !== "track")) return null;
+
+  const artists = Array.isArray(track.artists)
+    ? track.artists.map((a: any) => (a && typeof a === "object" ? a.name ?? "" : "")).filter(Boolean).join(", ")
+    : "Unknown Artist";
 
   return {
-    id: track.id || `spotify-${Math.random()}`, // ID yoxdursa uydururuq
-    title: track.name || "Adsız Mahnı",
-    artist: track.artists ? track.artists.map((a: any) => a.name).join(", ") : "Naməlum Sənətçi",
-    album: track.album ? track.album.name : "",
-    duration: track.duration_ms ? Math.floor(track.duration_ms / 1000) : 0,
-    // Şəkil yoxdursa standart şəkil qoyuruq
+    id: track.id ?? `spotify-${Math.random().toString(36).slice(2, 9)}`,
+    title: track.name ?? "Unknown Title",
+    artist: artists,
+    album: track.album?.name ?? "",
+    duration: typeof track.duration_ms === "number" ? Math.floor(track.duration_ms / 1000) : 0,
     coverUrl:
-      track.album?.images?.[0]?.url ||
+      track.album?.images?.[0]?.url ??
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60",
-    // preview_url olsa belə, əsas playback üçün Spotify URI istifadə olunacaq
-    audioUrl: track.preview_url || "",
+    audioUrl: track.preview_url ?? "",
     liked: false,
-    source: "spotify",
-    spotifyUri: track.uri || null,
+    provider: "spotify",
+    uri: track.uri ?? undefined,
   };
 };
 
@@ -34,7 +40,7 @@ const fetchPlaylistTracks = async (playlistId: string, accessToken: string): Pro
     "Content-Type": "application/json",
   };
 
-  let nextUrl = `${SPOTIFY_API}/playlists/${playlistId}/tracks?limit=100&market=from_token`;
+  let nextUrl: string | null = `${SPOTIFY_API}/playlists/${playlistId}/tracks?limit=100&market=from_token`;
   const tracks: Track[] = [];
 
   while (nextUrl) {
@@ -45,13 +51,14 @@ const fetchPlaylistTracks = async (playlistId: string, accessToken: string): Pro
       throw new Error(`Playlist tracks fetch failed with status ${response.status}`);
     }
 
-    const data = await response.json();
-    const mappedTracks = (data.items ?? [])
-      .map((item: any) => mapSpotifyTrackToAppTrack(item))
-      .filter((track): track is Track => track !== null);
+    const data = await response.json().catch(() => ({} as any));
+    const items = safeGet<any[]>(data.items, []);
+    const mappedTracks = items
+      .map((item) => mapSpotifyTrackToAppTrack(item))
+      .filter((t): t is Track => t !== null);
 
     tracks.push(...mappedTracks);
-    nextUrl = data.next;
+    nextUrl = data.next ?? null;
   }
 
   return tracks;
@@ -60,7 +67,6 @@ const fetchPlaylistTracks = async (playlistId: string, accessToken: string): Pro
 // İstifadəçinin Spotify Playlisterini gətirir
 export const fetchSpotifyPlaylists = async (accessToken: string): Promise<Playlist[]> => {
   try {
-    // 1. Playlisterin siyahısını al (API URL düzəldildi)
     const response = await fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -68,51 +74,48 @@ export const fetchSpotifyPlaylists = async (accessToken: string): Promise<Playli
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
       console.error("Spotify API Error:", errorData);
       throw new Error("Spotify playlists fetch failed");
     }
 
-    const data = await response.json();
-    const items = data.items;
+    const data = await response.json().catch(() => ({} as any));
+    const items = safeGet<any[]>(data.items, []);
 
-    if (!items) return [];
+    if (!Array.isArray(items) || items.length === 0) return [];
 
-    // 2. Hər playlistin içindəki mahnıları almaq üçün detallı sorğu
-    const fullPlaylists: Playlist[] = await Promise.all(
-      items.map(async (item: any) => {
-        if (!item) return null;
+    const fullPlaylists = await Promise.all(
+      items.map(async (item) => {
+        if (!item || !item.id) return null;
 
         try {
           const playlistTracks = await fetchPlaylistTracks(item.id, accessToken);
           return {
             id: item.id,
-            name: item.name,
-            description: item.description || "Spotify Playlist",
-            coverUrl: item.images?.[0]?.url || "",
+            name: item.name ?? "",
+            description: item.description ?? "Spotify Playlist",
+            coverUrl: item.images?.[0]?.url ?? "",
             tracks: playlistTracks,
             createdAt: new Date(),
-          };
+          } as Playlist;
         } catch (err) {
-          console.error(`Error fetching tracks for playlist ${item.name}:`, err);
-          // Mahnıları ala bilməsək də, boş playlisti qaytarırıq
+          console.error(`Error fetching tracks for playlist ${item.name ?? item.id}:`, err instanceof Error ? err.message : err);
           return {
             id: item.id,
-            name: item.name,
-            description: item.description || "Spotify Playlist",
-            coverUrl: item.images?.[0]?.url || "",
+            name: item.name ?? "",
+            description: item.description ?? "Spotify Playlist",
+            coverUrl: item.images?.[0]?.url ?? "",
             tracks: [],
             createdAt: new Date(),
-          };
+          } as Playlist;
         }
       })
     );
 
-    // Null olanları (xətalı playlistləri) təmizləyirik
-    return fullPlaylists.filter(Boolean);
+    return fullPlaylists.filter((p): p is Playlist => p !== null);
 
   } catch (error) {
-    console.error("Spotify General Error:", error);
+    console.error("Spotify General Error:", error instanceof Error ? error.message : error);
     return [];
   }
 };

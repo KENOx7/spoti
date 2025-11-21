@@ -2,7 +2,7 @@
 import { usePlayer } from "@/context/player-context";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Shuffle, Repeat, Repeat1 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Shuffle, Repeat, Repeat1, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Track } from "@/types"; 
 import { cn } from "@/lib/utils"; 
@@ -118,6 +118,22 @@ export function Player() {
                     : "text-muted-foreground hover:text-primary active:text-primary stroke-2"
                 )} />
               </Button>
+              {currentTrack.provider === "spotify" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 sm:h-10 sm:w-10 hover:bg-accent/50 active:bg-accent shrink-0"
+                  onClick={() => {
+                    const spotifyUrl = currentTrack.uri?.startsWith("spotify:")
+                      ? `https://open.spotify.com/track/${currentTrack.uri.split(":").pop()}`
+                      : `https://open.spotify.com/track/${currentTrack.id}`;
+                    if (typeof window !== "undefined") window.open(spotifyUrl, "_blank");
+                  }}
+                  title="Open in Spotify"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </Button>
+              )}
             </div>
 
             {/* Playback controls */}
