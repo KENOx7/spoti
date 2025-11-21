@@ -20,9 +20,9 @@ export default function AccountView() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false); // Şəkil yüklənmə statusu
+  const [isUploading, setIsUploading] = useState(false);
 
-  // --- ŞƏKİL YÜKLƏMƏ FUNKSİYASI ---
+  // --- ŞƏKİL YÜKLƏMƏ FUNKSİYASI (YENİLƏNMİŞ) ---
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       if (!event.target.files || event.target.files.length === 0) {
@@ -31,7 +31,8 @@ export default function AccountView() {
       
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+      // Fayl adını unikal edirik ki, keş problemi olmasın
+      const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       setIsUploading(true);
@@ -39,7 +40,7 @@ export default function AccountView() {
       // 1. Şəkli Supabase Storage-ə yükləyirik
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: true }); // upsert: true (əgər varsa yeniləsin)
 
       if (uploadError) throw uploadError;
 
@@ -48,9 +49,10 @@ export default function AccountView() {
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // 3. İstifadəçinin profilini yeniləyirik (avatar_url)
+      // 3. HƏLL BURADADIR: Şəkli 'custom_avatar_url' adıyla yadda saxlayırıq
+      // Beləliklə Google/Spotify bunu dəyişə bilmir.
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: publicUrl }
+        data: { custom_avatar_url: publicUrl }
       });
 
       if (updateError) throw updateError;
@@ -59,6 +61,9 @@ export default function AccountView() {
         title: "Uğurlu!",
         description: t("avatarUpdated") || "Profil şəkli yeniləndi!",
       });
+
+      // Brauzer şəkli dərhal yeniləsin deyə səhifəni yüngülcə tətiqləyirik (opsional)
+      window.location.reload();
 
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -72,46 +77,7 @@ export default function AccountView() {
     }
   };
 
-  // --- QONAQ REJİMİ ---
-  if (isGuest) {
-    return (
-      <div className="p-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 mt-10">
-        <div className="bg-card border border-border rounded-xl p-8 text-center shadow-lg">
-          <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <User className="h-10 w-10 text-primary" />
-          </div>
-          
-          <h1 className="text-3xl font-bold mb-3">{t("guestAccount")}</h1>
-          <p className="text-muted-foreground mb-8 text-lg">
-            {t("guestMessage")}
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-2 max-w-md mx-auto">
-            <Button 
-              size="lg" 
-              className="w-full" 
-              onClick={() => navigate("/login")}
-            >
-              <LogIn className="mr-2 h-5 w-5" />
-              {t("loginOrSignup")}
-            </Button>
-
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
-              onClick={signOut}
-            >
-              <LogOut className="mr-2 h-5 w-5" />
-              {t("endSession")}
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- REAL İSTİFADƏÇİ ---
+  // --- REAL İSTİFADƏÇİ PAROL DƏYİŞMƏ ---
   const handlePasswordChange = async () => {
     if (newPassword.length < 6) {
       toast({ variant: "destructive", title: "Xəta", description: "Şifrə ən az 6 simvol olmalıdır." });
@@ -136,7 +102,33 @@ export default function AccountView() {
     }
   };
 
+  // --- QONAQ REJİMİ ---
+  if (isGuest) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 mt-10">
+        <div className="bg-card border border-border rounded-xl p-8 text-center shadow-lg">
+          <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <User className="h-10 w-10 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold mb-3">{t("guestAccount")}</h1>
+          <p className="text-muted-foreground mb-8 text-lg">{t("guestMessage")}</p>
+          <div className="grid gap-4 sm:grid-cols-2 max-w-md mx-auto">
+            <Button size="lg" className="w-full" onClick={() => navigate("/login")}>
+              <LogIn className="mr-2 h-5 w-5" /> {t("loginOrSignup")}
+            </Button>
+            <Button size="lg" variant="outline" className="w-full border-destructive/50 text-destructive hover:bg-destructive/10" onClick={signOut}>
+              <LogOut className="mr-2 h-5 w-5" /> {t("endSession")}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const providerName = user?.app_metadata?.provider || "social";
+  
+  // VACİB MƏNTİQ: Əgər 'custom' varsa onu götür, yoxdursa 'original' (Google/Spotify) götür
+  const currentAvatarUrl = user?.user_metadata?.custom_avatar_url || user?.user_metadata?.avatar_url;
 
   return (
     <div className="p-6 pb-24 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -147,19 +139,20 @@ export default function AccountView() {
 
       <div className="space-y-6">
         
-        {/* PROFIL KARTI (Şəkil dəyişdirmə ilə) */}
+        {/* PROFIL KARTI */}
         <div className="p-6 bg-card rounded-lg border border-border flex flex-col sm:flex-row items-start sm:items-center gap-6 shadow-sm">
           
           {/* AVATAR HİSSƏSİ */}
           <div className="relative group">
             <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-background shadow-xl cursor-pointer transition-transform group-hover:scale-105">
-              <AvatarImage src={user?.user_metadata?.avatar_url} className="object-cover" />
+              {/* Burada 'currentAvatarUrl' istifadə edirik */}
+              <AvatarImage src={currentAvatarUrl} className="object-cover" />
               <AvatarFallback className="text-3xl font-bold bg-primary/10 text-primary">
                 {(user?.email?.[0] || "U").toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
-            {/* Yükləmə Overlay-i */}
+            {/* Yükləmə İkonu (Overlay) */}
             <label 
               htmlFor="avatar-upload" 
               className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -171,7 +164,6 @@ export default function AccountView() {
               )}
             </label>
             
-            {/* Gizli Input */}
             <input 
               type="file" 
               id="avatar-upload" 
@@ -199,7 +191,6 @@ export default function AccountView() {
                  {t("changeAvatar") || "Şəkli Dəyiş"}
               </label>
             </div>
-
           </div>
         </div>
 
