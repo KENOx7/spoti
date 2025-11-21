@@ -1,83 +1,122 @@
 import { Track } from "@/types";
 
-// Ən yeni və stabil Piped API serverləri (2024-2025)
-// Biri işləməsə, kod avtomatik digərinə keçəcək.
-const PIPED_INSTANCES = [
-  "https://api.piped.ot.ax",           // Çox stabil
-  "https://api.piped.projectsegfau.lt",// Çox stabil
-  "https://pipedapi.kavin.rocks",      // Orijinal (bəzən CORS verir)
-  "https://pipedapi.moomoo.me",        // Alternativ
-  "https://pipedapi.smnz.de",          // Alternativ
-  "https://pipedapi.adminforge.de",    // Alternativ
-  "https://api.piped.privacydev.net",  // Alternativ
-  "https://pipedapi.ducks.party",      // Alternativ
-  "https://piped-api.lunar.icu"        // Alternativ
+type ApiType = "piped" | "invidious";
+
+interface ApiInstance {
+  type: ApiType;
+  url: string;
+}
+
+// Çoxlu sayda server qarışığı (Biri işləməsə, mütləq digəri işləyəcək)
+const API_INSTANCES: ApiInstance[] = [
+  // --- Piped Serverləri ---
+  { type: "piped", url: "https://pipedapi.kavin.rocks" },
+  { type: "piped", url: "https://api.piped.ot.ax" },
+  { type: "piped", url: "https://api.piped.projectsegfau.lt" },
+  { type: "piped", url: "https://pipedapi.system41.science" },
+  { type: "piped", url: "https://pipedapi.moomoo.me" },
+  
+  // --- Invidious Serverləri (Bunlar daha dözümlüdür) ---
+  { type: "invidious", url: "https://inv.tux.pizza" },
+  { type: "invidious", url: "https://invidious.projectsegfau.lt" },
+  { type: "invidious", url: "https://vid.puffyan.us" },
+  { type: "invidious", url: "https://invidious.fdn.fr" },
+  { type: "invidious", url: "https://invidious.perennialte.ch" },
+  { type: "invidious", url: "https://invidious.drgns.space" },
+  { type: "invidious", url: "https://yt.artemislena.eu" }
 ];
 
-// Köməkçi funksiya: Serverləri sıra ilə yoxlayır
-async function fetchWithFallback(path: string): Promise<any> {
-  for (const instance of PIPED_INSTANCES) {
+// Timeout funksiyası (3 saniyə gözləyir, cavab yoxdursa atır)
+const fetchWithTimeout = async (url: string, options: RequestInit = {}) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 3000);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
+
+// --- PIPED MƏNTİQİ ---
+async function tryPiped(baseUrl: string, query: string): Promise<string | null> {
+  // 1. Axtarış
+  const searchRes = await fetchWithTimeout(`${baseUrl}/search?q=${encodeURIComponent(query)}&filter=music_songs`);
+  if (!searchRes.ok) throw new Error("Piped search failed");
+  const searchData = await searchRes.json();
+  
+  if (!searchData.items || searchData.items.length === 0) return null;
+  const videoId = searchData.items[0].url.split("/watch?v=")[1];
+
+  // 2. Stream
+  const streamRes = await fetchWithTimeout(`${baseUrl}/streams/${videoId}`);
+  if (!streamRes.ok) throw new Error("Piped stream failed");
+  const streamData = await streamRes.json();
+
+  const audioStreams = streamData.audioStreams;
+  if (!audioStreams || audioStreams.length === 0) return null;
+
+  const m4aStream = audioStreams.find((s: any) => s.mimeType === "audio/mp4");
+  return m4aStream ? m4aStream.url : audioStreams[0].url;
+}
+
+// --- INVIDIOUS MƏNTİQİ ---
+async function tryInvidious(baseUrl: string, query: string): Promise<string | null> {
+  // 1. Axtarış
+  const searchRes = await fetchWithTimeout(`${baseUrl}/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+  if (!searchRes.ok) throw new Error("Invidious search failed");
+  const searchData = await searchRes.json();
+
+  if (!searchData || searchData.length === 0) return null;
+  const videoId = searchData[0].videoId;
+
+  // 2. Stream (Videonu birbaşa çağırırıq)
+  const videoRes = await fetchWithTimeout(`${baseUrl}/api/v1/videos/${videoId}`);
+  if (!videoRes.ok) throw new Error("Invidious video failed");
+  const videoData = await videoRes.json();
+
+  // Adaptive formats (yalnız səs)
+  const adaptiveFormats = videoData.adaptiveFormats;
+  if (!adaptiveFormats || adaptiveFormats.length === 0) return null;
+
+  // Audio axtarırıq
+  const audioStream = adaptiveFormats
+    .filter((s: any) => s.type.includes("audio"))
+    .sort((a: any, b: any) => b.bitrate - a.bitrate)[0]; // Ən yüksək keyfiyyət
+
+  return audioStream ? audioStream.url : null;
+}
+
+// --- ƏSAS FUNKSİYA ---
+export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
+  const query = `${track.title} ${track.artist} official audio`;
+
+  // Serverləri qarışdırırıq ki, yük tək birinə düşməsin
+  const shuffledInstances = [...API_INSTANCES].sort(() => Math.random() - 0.5);
+
+  for (const instance of shuffledInstances) {
     try {
-      const url = `${instance}${path}`;
-      
-      // Timeout əlavə edirik ki, ölü serveri çox gözləməsin (3 saniyə)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      // console.log(`Trying ${instance.type}: ${instance.url}`); // Debug üçün
+      let result = null;
 
-      const response = await fetch(url, { 
-        signal: controller.signal 
-      });
-      
-      clearTimeout(timeoutId);
+      if (instance.type === "piped") {
+        result = await tryPiped(instance.url, query);
+      } else {
+        result = await tryInvidious(instance.url, query);
+      }
 
-      if (response.ok) {
-        const data = await response.json();
-        // Əgər boş cavab gəlibsə, bunu xəta kimi qəbul et
-        if (Array.isArray(data) && data.length === 0) continue; 
-        return data;
+      if (result) {
+        // Uğurlu oldu!
+        return result;
       }
     } catch (error) {
-      // Bu server işləmədi, səssizcə növbətiyə keçirik
+      // Bu server işləmədi, növbətiyə keç
       continue;
     }
   }
-  throw new Error("Bütün serverlər yoxlandı, heç biri cavab vermədi.");
-}
 
-export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  try {
-    // 1. Axtarış sorğusu (Mahnı adı + Artist)
-    const query = `${track.title} ${track.artist} official audio`;
-    
-    // 2. Axtarışı "Fallback" funksiyası ilə edirik
-    const searchData = await fetchWithFallback(`/search?q=${encodeURIComponent(query)}&filter=music_songs`);
-
-    if (!searchData.items || searchData.items.length === 0) {
-      console.warn("YouTube-da mahnı tapılmadı:", track.title);
-      return null;
-    }
-
-    // İlk nəticəni götürürük (Video ID)
-    const videoId = searchData.items[0].url.split("/watch?v=")[1];
-
-    // 3. Videonun səs axınlarını (streams) alırıq
-    const streamData = await fetchWithFallback(`/streams/${videoId}`);
-
-    // 4. Ən yaxşı səs formatını tapırıq
-    const audioStreams = streamData.audioStreams;
-    
-    if (!audioStreams || audioStreams.length === 0) return null;
-
-    // .m4a formatı (Apple və əksər cihazlar üçün ən yaxşısı)
-    const m4aStream = audioStreams.find((s: any) => s.mimeType === "audio/mp4");
-    
-    // Əgər m4a yoxdursa, keyfiyyəti ən yüksək olanı götür
-    const bestStream = m4aStream || audioStreams.sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
-
-    return bestStream ? bestStream.url : null;
-
-  } catch (error) {
-    console.error("YouTube Fetch Error:", error);
-    return null;
-  }
+  console.error("Bütün serverlər yoxlandı, mahnı tapılmadı.");
+  return null;
 }
