@@ -1,104 +1,95 @@
-import { TrackItem } from "@/components/TrackItem";
-import { mockTracks } from "@/data/tracks";
-import { useLanguage } from "@/context/language-context";
-import { usePlayer } from "@/context/player-context";
-import { useAuth } from "@/context/auth-context";
-import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
-import { PlaylistCarousel } from "@/components/PlaylistCarousel";
-import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";
-import { useNavigate } from "react-router-dom";
+import { PlaylistCard } from "./PlaylistCard"; // Bu fayl eyni qovluqda olmalıdır
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
-export default function Index() {
-  const { t } = useLanguage();
-  const { user, isGuest } = useAuth();
-  const { setQueue, likedTracks } = usePlayer();
-  const navigate = useNavigate();
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+interface PlaylistCarouselProps {
+  playlists: Playlist[];
+  title?: string;
+  showGridOnDesktop?: boolean;
+  maxDesktopItems?: number;
+  className?: string;
+  onPlaylistClick?: (playlist: Playlist) => void;
+}
 
-  useEffect(() => {
-    setPlaylists(storage.getPlaylists());
-  }, []);
+export function PlaylistCarousel({
+  playlists,
+  title,
+  showGridOnDesktop = true,
+  maxDesktopItems = 6,
+  className,
+  onPlaylistClick,
+}: PlaylistCarouselProps) {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  
+  const useGrid = !isMobile && playlists.length <= maxDesktopItems && showGridOnDesktop;
 
-  useEffect(() => {
-    if (mockTracks.length > 0) {
-      setQueue(mockTracks);
-    }
-  }, [setQueue]);
+  if (playlists.length === 0) return null;
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || t("guest");
-  const allTracks = mockTracks;
-
-  const likedSongsPlaylist: Playlist = {
-    id: "liked-songs",
-    name: t("likedSongs"),
-    description: t("likedSongs"),
-    coverUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-    tracks: likedTracks || [],
-    createdAt: new Date()
-  };
-
-  return (
-    <div className="w-full overflow-x-hidden space-y-6 pb-32 px-4 sm:px-6 animate-in fade-in duration-500">
-      
-      {/* Salamlama */}
-      <section className="pt-6">
-        <h1 className="text-2xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent leading-tight">
-          {t("welcomeUser")}, {isGuest ? t("guest") : displayName} 👋
-        </h1>
-        <p className="text-muted-foreground mt-2 text-sm sm:text-lg">
-          {t("enterMusicWorld")}
-        </p>
-      </section>
-
-      {/* Liked Songs - İndi Kiçik Kart kimi görünəcək */}
-      {!isGuest && (
-        <section className="min-w-0">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg sm:text-2xl font-bold truncate">{t("likedSongs")}</h2>
-          </div>
-          <PlaylistCarousel
-            playlists={[likedSongsPlaylist]}
-            // DÜZƏLİŞ: Grid-i false etdik ki, həmişə kiçik kart (Carousel item) kimi qalsın
-            showGridOnDesktop={false} 
-            onPlaylistClick={() => navigate("/liked")}
-          />
-        </section>
-      )}
-
-      {/* My Playlists */}
-      {playlists.length > 0 && (
-        <section className="min-w-0">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg sm:text-2xl font-bold truncate">{t("myPlaylists")}</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/collections")}
-              className="text-xs sm:text-sm"
-            >
-              {t("collections")}
-            </Button>
-          </div>
-          <PlaylistCarousel
-            playlists={playlists}
-            onPlaylistClick={(p) => navigate(`/playlist/${p.id}`)}
-          />
-        </section>
-      )}
-
-      {/* Trending Songs */}
-      <section className="min-w-0">
-        <h2 className="text-lg sm:text-2xl font-bold mb-3 truncate">{t("trending")}</h2>
-        <div className="space-y-1 w-full min-w-0">
-          {allTracks.map((track, index) => (
-            <div key={track.id} className="w-full min-w-0">
-               <TrackItem track={track} index={index} />
-            </div>
+  // Desktop Grid
+  if (useGrid) {
+    return (
+      <div className={cn("space-y-3", className)}>
+        {title && <h2 className="text-xl sm:text-3xl font-bold px-1">{title}</h2>}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+          {playlists.map((playlist) => (
+            <PlaylistCard
+              key={playlist.id}
+              playlist={playlist}
+              onClick={onPlaylistClick ? () => onPlaylistClick(playlist) : undefined}
+            />
           ))}
         </div>
-      </section>
+      </div>
+    );
+  }
+
+  // Carousel
+  return (
+    <div className={cn("space-y-3", className)}>
+      {title && <h2 className="text-xl sm:text-3xl font-bold px-1">{title}</h2>}
+      <div className="relative w-full">
+        <Carousel
+          opts={{
+            align: "start",
+            loop: false,
+            dragFree: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 sm:-ml-4">
+            {playlists.map((playlist) => (
+              <CarouselItem
+                key={playlist.id}
+                // TELEFONDA 3 KART GÖRÜNMƏSİ ÜÇÜN: basis-[33%]
+                className={cn(
+                  "pl-2 sm:pl-4",
+                  "basis-[33%] sm:basis-[25%] md:basis-[20%] lg:basis-[16%]"
+                )}
+              >
+                <PlaylistCard
+                  playlist={playlist}
+                  onClick={onPlaylistClick ? () => onPlaylistClick(playlist) : undefined}
+                />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          
+          {!isMobile && (
+             <>
+               <CarouselPrevious className="-left-3" />
+               <CarouselNext className="-right-3" />
+             </>
+          )}
+        </Carousel>
+      </div>
     </div>
   );
 }
