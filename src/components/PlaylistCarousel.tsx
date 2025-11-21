@@ -1,4 +1,4 @@
-// PlaylistCarousel.tsx
+// src/components/PlaylistCarousel.tsx
 import { Playlist } from "@/types";
 import { PlaylistCard } from "./PlaylistCard";
 import {
@@ -15,7 +15,7 @@ interface PlaylistCarouselProps {
   playlists: Playlist[];
   title?: string;
   showGridOnDesktop?: boolean;
-  maxDesktopItems?: number; // When to switch from grid to carousel on desktop
+  maxDesktopItems?: number;
   className?: string;
   onPlaylistClick?: (playlist: Playlist) => void;
 }
@@ -29,25 +29,20 @@ export function PlaylistCarousel({
   onPlaylistClick,
 }: PlaylistCarouselProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const isTablet = useMediaQuery("(max-width: 1024px)");
   
-  // On mobile: always use carousel
-  // On desktop: use grid if few playlists, carousel if many
-  const useCarousel = isMobile || (playlists.length > maxDesktopItems && !showGridOnDesktop);
+  // Məntiqi sadələşdirdim:
+  // Mobildirsə -> Həmişə Carousel
+  // Desktopdursa -> Əgər kart sayı azdırsa Grid, çoxdursa Carousel
   const useGrid = !isMobile && playlists.length <= maxDesktopItems && showGridOnDesktop;
 
-  if (playlists.length === 0) {
-    return null;
-  }
+  if (playlists.length === 0) return null;
 
-  // Grid layout for desktop with few playlists
+  // GRID Layout (Yalnız Desktop)
   if (useGrid) {
     return (
-      <div className={cn("space-y-4", className)}>
-        {title && (
-          <h2 className="text-2xl sm:text-3xl font-bold">{title}</h2>
-        )}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div className={cn("space-y-3", className)}>
+        {title && <h2 className="text-xl sm:text-3xl font-bold px-1">{title}</h2>}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {playlists.map((playlist) => (
             <PlaylistCard
               key={playlist.id}
@@ -60,31 +55,29 @@ export function PlaylistCarousel({
     );
   }
 
-  // Carousel layout for mobile or desktop with many playlists
+  // CAROUSEL Layout (Mobil və ya çoxlu kartlar)
   return (
-    <div className={cn("space-y-4", className)}>
-      {title && (
-        <h2 className="text-2xl sm:text-3xl font-bold">{title}</h2>
-      )}
-      <div className="relative group/carousel">
+    <div className={cn("space-y-3", className)}>
+      {title && <h2 className="text-xl sm:text-3xl font-bold px-1">{title}</h2>}
+      <div className="relative w-full">
         <Carousel
           opts={{
             align: "start",
             loop: false,
             dragFree: true,
-            containScroll: "trimSnaps",
-            slidesToScroll: isMobile ? 1 : 2,
           }}
           className="w-full"
         >
-          <CarouselContent className="-ml-2 md:-ml-4">
+          <CarouselContent className="-ml-2 sm:-ml-4">
             {playlists.map((playlist) => (
               <CarouselItem
                 key={playlist.id}
+                // DÜZƏLİŞ: Mobildə kartlar çox böyük idi. 
+                // basis-[35%] -> Ekrana ~2.5 kart sığır.
+                // basis-[45%] -> Ekrana ~2 kart sığır.
                 className={cn(
-                  "pl-2 md:pl-4",
-                  // Responsive card widths
-                  isMobile ? "basis-[45%] sm:basis-[40%]" : "basis-[30%] md:basis-[25%] lg:basis-[20%] xl:basis-[16.666%]"
+                  "pl-2 sm:pl-4",
+                  "basis-[40%] sm:basis-[30%] md:basis-[20%] lg:basis-[16%]"
                 )}
               >
                 <PlaylistCard
@@ -94,34 +87,16 @@ export function PlaylistCarousel({
               </CarouselItem>
             ))}
           </CarouselContent>
-          {/* Navigation buttons - only show on mobile if more than 3 playlists */}
-          {(!isMobile || playlists.length > 3) && (
-            <>
-              <CarouselPrevious 
-                className={cn(
-                  "!h-10 !w-10 bg-background/90 backdrop-blur-sm border-2 shadow-lg z-10 rounded-full",
-                  "hover:bg-background hover:scale-110 active:scale-95 transition-all",
-                  "touch-manipulation", // Better touch handling
-                  isMobile 
-                    ? "!left-2 opacity-100" 
-                    : "!left-4 opacity-0 group-hover/carousel:opacity-100"
-                )}
-              />
-              <CarouselNext 
-                className={cn(
-                  "!h-10 !w-10 bg-background/90 backdrop-blur-sm border-2 shadow-lg z-10 rounded-full",
-                  "hover:bg-background hover:scale-110 active:scale-95 transition-all",
-                  "touch-manipulation", // Better touch handling
-                  isMobile 
-                    ? "!right-2 opacity-100" 
-                    : "!right-4 opacity-0 group-hover/carousel:opacity-100"
-                )}
-              />
-            </>
+          
+          {/* Desktop oxları */}
+          {!isMobile && (
+             <>
+               <CarouselPrevious className="-left-3" />
+               <CarouselNext className="-right-3" />
+             </>
           )}
         </Carousel>
       </div>
     </div>
   );
 }
-
