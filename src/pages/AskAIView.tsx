@@ -1,11 +1,11 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/context/language-context";
 import { usePlayer } from "@/context/player-context";
 import { Track } from "@/types";
-import { Music, Send, Sparkles, AlertTriangle, Bot, User } from "lucide-react";
+import { Music, Send, Sparkles, AlertTriangle, Bot, User, Loader2 } from "lucide-react";
 import { TrackItem } from "@/components/TrackItem";
 import { GoogleGenAI } from "@google/genai";
 
@@ -15,7 +15,7 @@ type Message = {
   content: string;
   tracks?: Track[];
   error?: boolean;
-  isSearching?: boolean; // iTunes axtarışı gedirsə
+  isSearching?: boolean;
 };
 
 // === CONFIG ===
@@ -29,7 +29,7 @@ const generationConfig = {
   maxOutputTokens: 1024,
 };
 
-// AI sadəcə Artist və Mahnı adını verir, qalanını biz tapırıq
+// AI sadəcə Artist və Mahnı adını verir
 const systemPrompt = `
 Sən Spotify bənzəri tətbiqdə musiqi köməkçisisən.
 Məqsəd: İstifadəçinin istəyinə uyğun 3-5 ədəd real mahnı təklif etmək.
@@ -57,7 +57,6 @@ const genAI = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 async function searchItunesTrack(artist: string, title: string): Promise<Track | null> {
   try {
     const query = encodeURIComponent(`${artist} ${title}`);
-    // limit=1 ən uyğun nəticəni götürmək üçün
     const res = await fetch(`https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1`);
     if (!res.ok) return null;
     
@@ -71,9 +70,9 @@ async function searchItunesTrack(artist: string, title: string): Promise<Track |
       title: item.trackName,
       artist: item.artistName,
       album: item.collectionName,
-      duration: item.trackTimeMillis / 1000, // millis to seconds
-      coverUrl: item.artworkUrl100.replace("100x100", "600x600"), // Yüksək keyfiyyətli şəkil
-      audioUrl: item.previewUrl, // 30 saniyəlik preview
+      duration: item.trackTimeMillis / 1000,
+      coverUrl: item.artworkUrl100.replace("100x100", "600x600"),
+      audioUrl: item.previewUrl,
       liked: false
     };
   } catch (e) {
@@ -103,7 +102,7 @@ export default function AskAIView() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Mesaj gələndə aşağı sürüşdür
+  // Avtomatik aşağı sürüşdürmə
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
@@ -122,54 +121,43 @@ export default function AskAIView() {
     const textToSend = textOverride || input;
     if (!textToSend.trim() || !genAI) return;
 
-    // 1. İstifadəçi mesajını əlavə et
     const userMessage: Message = { role: "user", content: textToSend };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
     try {
-      // Tarixçəni qurmaq (kontekst üçün)
       const historyText = messages
         .filter((m) => !m.error)
-        .slice(-6) // Son 6 mesajı götürürük ki, token limiti dolmasın
+        .slice(-6)
         .map((m) => `${m.role === "user" ? "User" : "AI"}: ${m.content}`)
         .join("\n");
 
       const finalPrompt = `${systemPrompt}\n\nKeçmiş dialoq:\n${historyText}\n\nYeni sorğu:\n${textToSend}`;
 
-      // 2. AI-dan cavab al
       const response = await generateWithRetry(finalPrompt);
       const rawText = (response && (response as any).text) || "";
-      
-      // JSON təmizləmə
       const cleanedText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
       
       let aiData: { responseText: string; suggestions: { artist: string; title: string }[] } | null = null;
       try {
         aiData = JSON.parse(cleanedText);
       } catch (e) {
-        console.warn("JSON parse error, fallback text mode");
+        console.warn("JSON parse error");
       }
 
       if (aiData && aiData.suggestions && aiData.suggestions.length > 0) {
-        // 3. iTunes Axtarışına başla (Loading göstərərək)
-        // Müvəqqəti AI mesajı əlavə edirik
         setMessages((prev) => [
             ...prev, 
             { role: "ai", content: aiData!.responseText, isSearching: true }
         ]);
         
-        setIsLoading(false); // Inputu aktiv edirik, amma axtarış davam edir
+        setIsLoading(false);
 
-        // Paralel olaraq bütün mahnıları axtar
         const trackPromises = aiData.suggestions.map(s => searchItunesTrack(s.artist, s.title));
         const foundTracks = await Promise.all(trackPromises);
-
-        // Yalnız tapılan mahnıları saxla (null olmayanları)
         const validTracks = foundTracks.filter((track): track is Track => track !== null);
 
-        // Mesajı yenilə (isSearching silinir, mahnılar gəlir)
         setMessages((prev) => {
             const newArr = [...prev];
             const lastMsg = newArr[newArr.length - 1];
@@ -184,16 +172,14 @@ export default function AskAIView() {
         });
 
       } else {
-        // Sadə mətn cavabı (mahnı yoxdur)
         setMessages((prev) => [
           ...prev,
-          { role: "ai", content: cleanedText || "Bağışlayın, xəta baş verdi." },
+          { role: "ai", content: cleanedText || "Xəta baş verdi." },
         ]);
         setIsLoading(false);
       }
 
     } catch (err: any) {
-      console.error("AI Error:", err);
       setMessages((prev) => [
         ...prev,
         { role: "ai", content: "Xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.", error: true },
@@ -202,44 +188,55 @@ export default function AskAIView() {
     }
   };
 
-  const handlePlayAllFromAI = (tracks: Track[]) => {
-    setQueue(tracks);
-    if (tracks.length > 0) playTrack(tracks[0]);
-  };
-
   return (
-    <div className="flex flex-col w-full h-[calc(100vh-9rem)] max-w-4xl mx-auto">
+    // MOBILE FIX: h-[calc(100dvh-layout)] istifadə edildi. 
+    // Mobil brauzerlərin alt paneli nəzərə alınır (dvh).
+    <div className="flex flex-col w-full h-[calc(100dvh-8rem)] sm:h-[calc(100vh-9rem)] max-w-4xl mx-auto relative">
+      
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4 px-4 sm:px-0 shrink-0">
-        <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-          <Sparkles className="h-6 w-6 text-primary" />
+      <div className="flex items-center gap-3 mb-2 px-4 sm:px-0 shrink-0 pt-2">
+        <div className="p-2 sm:p-3 rounded-xl bg-primary/10 shrink-0">
+          <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold truncate">{t("askAI")}</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground truncate">{t("askAIDescription")}</p>
+          <h1 className="text-lg sm:text-2xl font-bold truncate">{t("askAI")}</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate opacity-80">{t("askAIDescription")}</p>
         </div>
       </div>
 
       {/* Messages Area */}
-      <Card className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4 min-h-0 bg-background/50 backdrop-blur-sm border-none sm:border rounded-xl">
+      {/* MOBILE FIX: Padding azaldıldı, border silindi */}
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4 min-h-0 bg-background/30 sm:bg-background/50 backdrop-blur-sm sm:border rounded-xl no-scrollbar">
         {messages.map((msg, index) => (
-          <MessageItem key={index} message={msg} onPlayAll={handlePlayAllFromAI} searchingText={t("searchingItunes")} />
+          <MessageItem 
+            key={index} 
+            message={msg} 
+            onPlayAll={() => {
+              if(msg.tracks) {
+                setQueue(msg.tracks);
+                playTrack(msg.tracks[0]);
+              }
+            }} 
+            searchingText={t("searchingItunes")} 
+          />
         ))}
         {isLoading && <LoadingIndicator />}
-        <div ref={messagesEndRef} />
-      </Card>
+        <div ref={messagesEndRef} className="h-2" />
+      </div>
 
       {/* Controls Area */}
-      <div className="mt-4 flex flex-col gap-3 px-2 sm:px-0 shrink-0">
+      <div className="mt-2 flex flex-col gap-2 px-2 sm:px-0 shrink-0 pb-2">
         
-        {/* Suggestion Chips (Horizontal Scroll) */}
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar mask-fade-right">
+        {/* MOBILE FIX: Horizontal Scroll (Chips) */}
+        {/* flex-nowrap, overflow-x-auto və no-scrollbar əlavə edildi */}
+        <div className="flex gap-2 overflow-x-auto pb-1 w-full no-scrollbar mask-fade-right touch-pan-x">
           {suggestionChips.map((chip, idx) => (
             <Button
               key={idx}
               variant="secondary"
               size="sm"
-              className="whitespace-nowrap rounded-full text-xs h-8 px-4"
+              // flex-shrink-0 vacibdir ki, düymələr əzilməsin
+              className="whitespace-nowrap flex-shrink-0 rounded-full text-xs h-8 px-4 bg-secondary/80 hover:bg-secondary border border-transparent hover:border-primary/20 transition-all"
               onClick={() => handleSend(chip.query)}
               disabled={isLoading || !API_KEY}
             >
@@ -249,22 +246,22 @@ export default function AskAIView() {
         </div>
 
         {/* Input Bar */}
-        <div className="flex gap-2 w-full">
+        <div className="flex gap-2 w-full items-center">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
             placeholder={t("askAIPlaceholder")}
             disabled={isLoading || !API_KEY}
-            className="h-12 text-base rounded-2xl shadow-sm"
+            className="h-11 sm:h-12 text-sm sm:text-base rounded-2xl shadow-sm bg-background/80 backdrop-blur"
           />
           <Button
             size="icon"
             onClick={() => handleSend()}
             disabled={isLoading || !input.trim() || !API_KEY}
-            className="h-12 w-12 shrink-0 rounded-2xl shadow-sm"
+            className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-2xl shadow-sm transition-transform active:scale-95"
           >
-            <Send className="h-5 w-5" />
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
         </div>
       </div>
@@ -277,22 +274,22 @@ export default function AskAIView() {
 // === SUB-COMPONENTS ===
 
 const ApiErrorIndicator = () => (
-  <div className="mt-4 p-3 bg-destructive/20 border border-destructive rounded-xl flex items-center gap-3 mx-2">
+  <div className="mt-2 p-3 bg-destructive/10 border border-destructive/50 rounded-xl flex items-center gap-3 mx-2">
     <AlertTriangle className="h-5 w-5 text-destructive" />
     <div className="text-destructive-foreground">
-      <h3 className="font-semibold text-sm">API Açar yoxdur</h3>
-      <p className="text-xs">`.env.local` faylına açarı əlavə edin.</p>
+      <h3 className="font-semibold text-sm">API Error</h3>
+      <p className="text-xs">Check configuration.</p>
     </div>
   </div>
 );
 
 const LoadingIndicator = () => (
-  <div className="flex justify-start w-full">
+  <div className="flex justify-start w-full animate-in fade-in duration-300">
     <div className="p-4 rounded-2xl rounded-tl-none bg-muted/50 flex items-center gap-2">
       <div className="flex gap-1.5">
-        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-        <div className="w-2 h-2 bg-primary rounded-full animate-bounce delay-150" />
-        <div className="w-2 h-2 bg-primary rounded-full animate-bounce delay-300" />
+        <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
+        <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce delay-150" />
+        <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce delay-300" />
       </div>
     </div>
   </div>
@@ -304,26 +301,24 @@ const MessageItem = ({
   searchingText
 }: {
   message: Message;
-  onPlayAll: (tracks: Track[]) => void;
+  onPlayAll: () => void;
   searchingText: string;
 }) => {
   const isUser = message.role === "user";
 
   return (
-    <div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
-      <div className={`flex gap-3 max-w-[95%] sm:max-w-[85%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+    <div className={`flex w-full ${isUser ? "justify-end" : "justify-start"} animate-in slide-in-from-bottom-2 duration-300`}>
+      <div className={`flex gap-2 sm:gap-3 max-w-[85%] sm:max-w-[80%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
         
-        {/* Avatar Icon */}
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 ${
             isUser ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
         }`}>
-            {isUser ? <User size={16} /> : <Bot size={16} />}
+            {isUser ? <User size={14} /> : <Bot size={14} />}
         </div>
 
         <div className="flex flex-col gap-2 min-w-0">
-          {/* Bubble */}
           <div
-            className={`p-3 sm:p-4 rounded-2xl break-words text-sm sm:text-base shadow-sm ${
+            className={`p-3 sm:p-4 rounded-2xl break-words text-sm shadow-sm ${
               isUser
                 ? "bg-primary text-primary-foreground rounded-tr-none"
                 : message.error
@@ -334,7 +329,6 @@ const MessageItem = ({
             <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
           </div>
 
-          {/* iTunes Searching State */}
           {message.isSearching && (
              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse ml-1">
                 <Sparkles className="h-3 w-3" />
@@ -342,11 +336,10 @@ const MessageItem = ({
              </div>
           )}
 
-          {/* Tracks */}
           {message.tracks && message.tracks.length > 0 && (
             <div className="w-full space-y-2 animate-in fade-in slide-in-from-top-2 duration-500">
-              <Button onClick={() => onPlayAll(message.tracks!)} className="w-full rounded-xl" variant="secondary" size="sm">
-                <Music className="mr-2 h-4 w-4" /> Hamısını Oxut
+              <Button onClick={onPlayAll} className="w-full rounded-xl h-9 text-xs sm:text-sm" variant="secondary" size="sm">
+                <Music className="mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Hamısını Oxut
               </Button>
               <div className="space-y-1">
                 {message.tracks.map((track) => (
