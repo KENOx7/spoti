@@ -1,27 +1,26 @@
 import { Track } from "@/types";
 
-const DEFAULT_TIMEOUT = 5000; // 5 saniyə
+// === KONFİQURASİYA ===
+const DEFAULT_TIMEOUT = 6000; // 6 saniyə
 const MAX_RETRIES = 1;
 
-// CORS Proxy (Bəzi API-lər üçün lazımdır)
+// ƏN VACİB HİSSƏ: Proxy URL
 const CORS_PROXY = "https://corsproxy.io/?";
 
-// === SERVERLƏR (Daha etibarlı siyahı) ===
+// 2025-ci il üçün ən stabil serverlər (Yoxlanılıb)
 const PIPED_INSTANCES = [
-  "https://pipedapi.kavin.rocks",
-  "https://api.piped.ot.ax",
-  "https://pipedapi.moomoo.me",
-  "https://pipedapi.adminforge.de",
-  "https://api.piped.privacydev.net",
-  "https://pipedapi.drgns.space"
+  "https://api.piped.ot.ax",        // Çox sürətli
+  "https://pipedapi.kavin.rocks",   // Klassik (bəzən donur)
+  "https://api.piped.yt",           // Stabil
+  "https://pipedapi.adminforge.de", // Almaniya serveri
+  "https://api.piped.projectsegfau.lt"
 ];
 
 const INVIDIOUS_INSTANCES = [
-  "https://vid.puffyan.us",
   "https://inv.tux.pizza",
-  "https://invidious.drgns.space",
-  "https://invidious.fdn.fr",
-  "https://invidious.perennialteks.com"
+  "https://invidious.projectsegfau.lt",
+  "https://inv.bp.projectsegfau.lt",
+  "https://vid.puffyan.us" // Bəzən 502 verir, amma populyardır
 ];
 
 // === KÖMƏKÇİ FUNKSİYALAR ===
@@ -32,10 +31,16 @@ function timeoutSignal(ms: number): AbortSignal {
   return c.signal;
 }
 
+// Bütün URL-ləri Proxy ilə örtən funksiya
+function proxify(url: string): string {
+  return `${CORS_PROXY}${encodeURIComponent(url)}`;
+}
+
 async function safeFetch(url: string, opts: any = {}, timeout = DEFAULT_TIMEOUT): Promise<Response> {
   try {
     const signal = timeoutSignal(timeout);
-    const res = await fetch(url, { ...opts, signal });
+    // Burada URL-i həmişə proxify edirik
+    const res = await fetch(proxify(url), { ...opts, signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res;
   } catch (err) {
@@ -45,84 +50,82 @@ async function safeFetch(url: string, opts: any = {}, timeout = DEFAULT_TIMEOUT)
 
 function cleanQuery(artist: string, title: string): string {
   const cleanArtist = artist.replace(/feat\.|ft\./gi, "").trim();
-  // "Official Video" kimi sözləri saxlayırıq ki, cover yox, original gəlsin, 
-  // amma mötərizələri təmizləyirik.
   let cleanTitle = title
     .replace(/\(.*\)/g, "") 
     .replace(/\[.*\]/g, "")
+    .replace(/official video|video|audio|lyrics/gi, "") // Təmizləyirik, sonra özümüz əlavə edəcəyik
     .trim();
   
   return `${cleanArtist} - ${cleanTitle}`;
 }
 
-// Videonun müddətini yoxlayır (çox uzun miksləri və ya şortları istəmirik)
+// Videonun müddətini yoxlayır (1 dəq - 12 dəq arası)
 function isValidDuration(seconds: number): boolean {
-  return seconds > 60 && seconds < 600; // 1 dəqiqə ilə 10 dəqiqə arası
+  return seconds > 60 && seconds < 720; 
 }
 
-// === 1. PIPED AXTARIŞI (Yenilənmiş) ===
+// === 1. PIPED AXTARIŞI (PROXY İLƏ) ===
 async function searchPiped(query: string): Promise<string | null> {
   const shuffled = [...PIPED_INSTANCES].sort(() => Math.random() - 0.5);
-  
-  // Daha dəqiq nəticə üçün "Lyrics" əlavə edirik ki, klip səsləri (intro/outro) olmasın
-  const searchQuery = `${query} lyrics`; 
+  const searchQuery = `${query} audio`; // "audio" sözü rəsmi səsi tapmağa kömək edir
 
   for (const base of shuffled) {
     try {
-      // Filteri "all" qoyuruq, "music_songs" çox vaxt nəticə vermir
+      // 1. Axtarış
       const searchUrl = `${base}/api/v1/search?q=${encodeURIComponent(searchQuery)}&filter=all`;
-      const res = await safeFetch(searchUrl); // Proxy-siz yoxlayaq, Piped adətən CORS dəstəkləyir
+      const res = await safeFetch(searchUrl);
       const results = await res.json();
 
       if (!Array.isArray(results)) continue;
 
-      // Uyğun videonu tapırıq (Duration vacibdir)
+      // Uyğun videonu tapırıq
       const video = results.find((v: any) => !v.isShort && isValidDuration(v.duration));
-      
       if (!video) continue;
 
-      const streamUrl = `${base}/api/v1/streams/${video.url.split("v=")[1]}`;
+      const videoId = video.url.split("v=")[1];
+
+      // 2. Stream Linki (Bu da Proxy ilə çağırılmalıdır)
+      const streamUrl = `${base}/api/v1/streams/${videoId}`;
       const streamRes = await safeFetch(streamUrl);
       const info = await streamRes.json();
 
       const audioStreams = info.audioStreams || [];
       
-      // m4a və ya yüksək bitrate seçirik
+      // m4a (iPhone/Web üçün ən yaxşı) və ya yüksək bitrate
       const bestAudio = audioStreams.find((s: any) => s.mimeType === "audio/mp4") || 
                         audioStreams.sort((a: any, b: any) => b.bitrate - a.bitrate)[0];
 
       if (bestAudio?.url) {
-        console.log(`✅ [Piped] Tapıldı: ${base}`);
+        console.log(`✅ [Piped] Tapıldı (${base}): ${videoId}`);
         return bestAudio.url;
       }
     } catch (e) {
-      continue;
+      // console.warn(`Server xətası (${base}):`, e);
+      continue; // Sakitcə növbəti serverə keç
     }
   }
   return null;
 }
 
-// === 2. INVIDIOUS AXTARIŞI (YENİ - Ehtiyat Plan) ===
+// === 2. INVIDIOUS AXTARIŞI (PROXY İLƏ) ===
 async function searchInvidious(query: string): Promise<string | null> {
   const shuffled = [...INVIDIOUS_INSTANCES].sort(() => Math.random() - 0.5);
-  
-  console.log(`🔎 Invidious axtarış: ${query}`);
+  const searchQuery = `${query} lyrics`; // Invidious üçün "lyrics" daha yaxşı işləyir
 
   for (const base of shuffled) {
     try {
-      const searchUrl = `${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+      // 1. Axtarış
+      const searchUrl = `${base}/api/v1/search?q=${encodeURIComponent(searchQuery)}&type=video`;
       const res = await safeFetch(searchUrl);
       const results = await res.json();
 
       if (!Array.isArray(results) || results.length === 0) continue;
 
-      // İlk uyğun gələn videonu götürürük
       const video = results.find((v: any) => isValidDuration(v.lengthSeconds));
       if (!video) continue;
 
-      // Video detallarını çəkirik
-      const videoId = video.videoId;
-      const infoUrl = `${base}/api/v1/videos/${videoId}`;
+      // 2. Video Detalları
+      const infoUrl = `${base}/api/v1/videos/${video.videoId}`;
       const infoRes = await safeFetch(infoUrl);
       const info = await infoRes.json();
 
@@ -130,10 +133,10 @@ async function searchInvidious(query: string): Promise<string | null> {
       const adaptive = info.adaptiveFormats || [];
       const audio = adaptive
         .filter((f: any) => f.type && f.type.includes("audio"))
-        .sort((a: any, b: any) => parseInt(b.bitrate) - parseInt(a.bitrate))[0];
+        .sort((a: any, b: any) => parseInt(b.bitrate || "0") - parseInt(a.bitrate || "0"))[0];
 
       if (audio?.url) {
-        console.log(`✅ [Invidious] Tapıldı: ${base}`);
+        console.log(`✅ [Invidious] Tapıldı (${base}): ${video.videoId}`);
         return audio.url;
       }
     } catch (e) {
@@ -143,15 +146,17 @@ async function searchInvidious(query: string): Promise<string | null> {
   return null;
 }
 
-// === 3. iTUNES FALLBACK (Son çarə) ===
+// === 3. iTUNES FALLBACK ===
 async function searchiTunes(query: string): Promise<string | null> {
   try {
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`;
-    const res = await safeFetch(url);
+    // iTunes CORS dəstəkləyir, proxy-ə ehtiyac yoxdur, amma safeFetch proxy əlavə edir. 
+    // iTunes birbaşa fetch ilə işləyə bilər.
+    const res = await fetch(url); 
     const data = await res.json();
     
     if (data.resultCount > 0 && data.results[0].previewUrl) {
-      console.log("⚠️ Yalnız iTunes 30s tapıldı");
+      console.log("⚠️ Fallback: iTunes 30s preview");
       return data.results[0].previewUrl;
     }
     return null;
@@ -160,18 +165,19 @@ async function searchiTunes(query: string): Promise<string | null> {
   }
 }
 
-// === ƏSAS İXRAC EDİLƏN FUNKSİYA ===
+// === ƏSAS FUNKSİYA ===
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
   const baseQuery = cleanQuery(track.artist, track.title);
-  
-  // 1. Addım: Piped ilə yoxla (Ən sürətli)
+  console.log(`🔍 Axtarılır: "${baseQuery}"`);
+
+  // 1. Piped (Ən keyfiyyətli)
   const pipedUrl = await searchPiped(baseQuery);
   if (pipedUrl) return pipedUrl;
 
-  // 2. Addım: Invidious ilə yoxla (Daha çox server var)
+  // 2. Invidious (Ən geniş baza)
   const invidiousUrl = await searchInvidious(baseQuery);
   if (invidiousUrl) return invidiousUrl;
 
-  // 3. Addım: iTunes (Heç olmasa preview olsun)
+  // 3. iTunes (Ən azından səssiz qalmasın)
   return await searchiTunes(baseQuery);
 }
