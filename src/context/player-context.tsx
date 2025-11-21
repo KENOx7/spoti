@@ -1,122 +1,256 @@
-import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
+// src/context/player-context.tsx
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Track } from "@/types";
-import { getYoutubeVideoId } from "@/lib/youtube";
 import { storage } from "@/lib/storage";
+import { getYoutubeId } from "@/lib/youtube"; // Youtube ID tapan funksiya
 
 export type RepeatMode = "off" | "all" | "one";
 
 interface PlayerContextType {
+  // State (Vəziyyət)
   currentTrack: Track | null;
   isPlaying: boolean;
-  youtubeUrl: string | null; // YENİ: YouTube URL-i saxlayır
-  volume: number;
-  repeatMode: RepeatMode;
+  volume: number;       // 0 - 1 arası
+  currentTime: number;  // cari saniyə
+  duration: number;     // ümumi saniyə
+  isBuffering: boolean;
+  
+  // Seek (İrəli/Geri çəkmə) üçün xüsusi siqnal
+  seekToTime: number | null; 
+  setSeekToTime: (time: number | null) => void;
+
+  // Queue (Növbə)
+  queue: Track[];
   isShuffled: boolean;
-  isLoading: boolean;
-  playTrack: (track: Track) => void;
+  repeatMode: RepeatMode;
+
+  // Actions (Hərəkətlər)
+  playTrack: (track: Track) => Promise<void>;
+  pauseTrack: () => void;
   togglePlayPause: () => void;
-  setVolume: (val: number) => void;
+  setVolume: (volume: number) => void;
   playNext: () => void;
   playPrevious: () => void;
-  toggleRepeat: () => void;
   toggleShuffle: () => void;
-  setIsPlaying: (val: boolean) => void;
-  queue: Track[];
-  setQueue: (tracks: Track[]) => void;
+  toggleRepeat: () => void;
+  
+  // Player-dən gələn hesabatlar (ReactPlayer bura məlumat göndərir)
+  handleSeek: (time: number) => void; // İstifadəçi slideri çəkəndə
+  reportProgress: (playedSeconds: number, loadedSeconds?: number) => void;
+  reportDuration: (duration: number) => void;
+  reportEnded: () => void;
+
+  // Likes
   likedTracks: Track[];
   toggleLike: (track: Track) => void;
+  setQueue: (tracks: Track[]) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
-export function PlayerProvider({ children }: { children: ReactNode }) {
+export function PlayerProvider({ children }: { children: React.ReactNode }) {
+  // --- States ---
   const [currentTrack, setCurrentTrack] = useState<Track | null>(storage.getCurrentTrack());
-  const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolumeState] = useState(0.5);
-  const [isLoading, setIsLoading] = useState(false);
-  const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
+  const [volume, setVolumeState] = useState(1);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [seekToTime, setSeekToTime] = useState<number | null>(null);
+
+  // Queue States
+  const [queue, setQueueState] = useState<Track[]>([]);
+  const [originalQueue, setOriginalQueue] = useState<Track[]>([]); // Shuffle bağlayanda geri qayıtmaq üçün
   const [isShuffled, setIsShuffled] = useState(false);
-  const [queue, setQueue] = useState<Track[]>([]);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
+
+  // Likes
   const [likedTracks, setLikedTracks] = useState<Track[]>(storage.getLikedTracks());
 
-  // Mahnı oxutma funksiyası
-  const playTrack = async (track: Track) => {
-    setIsPlaying(false);
-    setCurrentTrack(track);
-    setIsLoading(true);
-    setYoutubeUrl(null); // Əvvəlki URL-i sıfırla
-
-    // YouTube ID tapırıq
-    const url = await getYoutubeVideoId(track);
-    
-    if (url) {
-      setYoutubeUrl(url);
-      setIsPlaying(true);
-    } else {
-      console.error("Video tapılmadı");
-      // Avtomatik növbətiyə keçmək olar
-    }
-    setIsLoading(false);
-  };
-
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const playNext = useCallback(() => {
-    if (!currentTrack || queue.length === 0) return;
-    const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
-    if (currentIndex < queue.length - 1) {
-      playTrack(queue[currentIndex + 1]);
-    }
-  }, [currentTrack, queue]);
-
-  const playPrevious = useCallback(() => {
-    if (!currentTrack || queue.length === 0) return;
-    const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
-    if (currentIndex > 0) {
-      playTrack(queue[currentIndex - 1]);
-    }
-  }, [currentTrack, queue]);
-
-  const toggleRepeat = () => setRepeatMode((p) => (p === "off" ? "all" : p === "all" ? "one" : "off"));
-  const toggleShuffle = () => setIsShuffled(!isShuffled);
-  
-  const toggleLike = (track: Track) => {
-    setLikedTracks((prev) => {
-      const exists = prev.find((t) => t.id === track.id);
-      if (exists) return prev.filter((t) => t.id !== track.id);
-      return [...prev, track];
-    });
-  };
-
+  // --- Effects ---
+  // Liked tracks yaddaşa yaz
   useEffect(() => {
     storage.saveLikedTracks(likedTracks);
   }, [likedTracks]);
+
+  // Cari mahnını yaddaşa yaz
+  useEffect(() => {
+    if (currentTrack) {
+      storage.saveCurrentTrack(currentTrack);
+    }
+  }, [currentTrack]);
+
+  // --- Main Logic ---
+
+  const playTrack = async (track: Track) => {
+    setIsPlaying(false); // Keçid edərkən dayandır
+    setIsBuffering(true);
+
+    let trackToPlay = { ...track };
+
+    // Əgər videoUrl yoxdursa və ya sadəcə Spotify-dan gəlibsə, YouTube ID axtar
+    if (!trackToPlay.videoUrl) {
+      try {
+        const videoId = await getYoutubeId(track);
+        if (videoId) {
+          trackToPlay.videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        } else {
+           // Fallback: Əgər tapılmasa, axtarış linki qoy (ReactPlayer bunu da oynada bilir)
+           trackToPlay.videoUrl = `ytsearch:${track.artist} ${track.title} audio`;
+        }
+      } catch (error) {
+        console.error("YouTube ID tapılmadı:", error);
+      }
+    }
+
+    setCurrentTrack(trackToPlay);
+    setIsBuffering(false);
+    setIsPlaying(true);
+  };
+
+  const pauseTrack = () => setIsPlaying(false);
+  
+  const togglePlayPause = () => setIsPlaying((prev) => !prev);
+
+  const setVolume = (val: number) => setVolumeState(val);
+
+  // --- Queue Logic (Next/Prev) ---
+
+  const playNext = useCallback(() => {
+    if (!currentTrack || queue.length === 0) return;
+
+    // "One" rejimi: eyni mahnını başa sar
+    if (repeatMode === "one") {
+      setSeekToTime(0);
+      setIsPlaying(true);
+      return;
+    }
+
+    const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
+    const nextIndex = currentIndex + 1;
+
+    if (nextIndex < queue.length) {
+      playTrack(queue[nextIndex]);
+    } else {
+      // Queue bitdi
+      if (repeatMode === "all") {
+        playTrack(queue[0]); // Başa qayıt
+      } else {
+        setIsPlaying(false); // Dayan
+      }
+    }
+  }, [currentTrack, queue, repeatMode]);
+
+  const playPrevious = useCallback(() => {
+    if (!currentTrack || queue.length === 0) return;
+
+    // Əgər mahnının 3-cü saniyəsindən çoxdursa, mahnını başa sar
+    if (currentTime > 3) {
+      setSeekToTime(0);
+      return;
+    }
+
+    const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
+    const prevIndex = currentIndex - 1;
+
+    if (prevIndex >= 0) {
+      playTrack(queue[prevIndex]);
+    } else {
+      // Siyahının əvvəlindəyik
+      playTrack(queue[queue.length - 1]); // Sonuncuya get (və ya dayandır)
+    }
+  }, [currentTrack, queue, currentTime]);
+
+  // --- Shuffle & Repeat ---
+
+  const toggleRepeat = () => {
+    setRepeatMode((prev) => (prev === "off" ? "all" : prev === "all" ? "one" : "off"));
+  };
+
+  const setQueue = useCallback((newQueue: Track[]) => {
+    setOriginalQueue(newQueue);
+    if (isShuffled) {
+      // Shuffle varsa qarışdıraraq əlavə et
+      setQueueState([...newQueue].sort(() => Math.random() - 0.5));
+    } else {
+      setQueueState(newQueue);
+    }
+  }, [isShuffled]);
+
+  const toggleShuffle = () => {
+    setIsShuffled((prev) => !prev);
+  };
+
+  // Shuffle dəyişəndə queue-nu yenilə
+  useEffect(() => {
+    if (isShuffled) {
+      setQueueState((prev) => [...prev].sort(() => Math.random() - 0.5));
+    } else {
+      setQueueState(originalQueue);
+    }
+  }, [isShuffled, originalQueue]);
+
+
+  // --- Player Reports (From ReactPlayer to Context) ---
+  
+  // UI-dan (Sliderdən) gələn seek əmri
+  const handleSeek = (time: number) => {
+    setCurrentTime(time);
+    setSeekToTime(time); // Player.tsx bunu görüb videonu çəkəcək
+  };
+
+  // ReactPlayer hər saniyə bunu çağırır
+  const reportProgress = (playedSeconds: number, loadedSeconds: number = 0) => {
+    setCurrentTime(playedSeconds);
+  };
+
+  const reportDuration = (dur: number) => {
+    setDuration(dur);
+  };
+
+  const reportEnded = () => {
+    playNext();
+  };
+
+  // --- Likes ---
+  const toggleLike = useCallback((track: Track) => {
+    setLikedTracks((prev) => {
+      const exists = prev.some((t) => t.id === track.id);
+      return exists 
+        ? prev.filter((t) => t.id !== track.id)
+        : [...prev, { ...track, liked: true }];
+    });
+  }, []);
 
   return (
     <PlayerContext.Provider
       value={{
         currentTrack,
         isPlaying,
-        youtubeUrl,
         volume,
-        repeatMode,
+        currentTime,
+        duration,
+        isBuffering,
+        seekToTime,
+        setSeekToTime,
+        queue,
         isShuffled,
-        isLoading,
+        repeatMode,
         playTrack,
+        pauseTrack,
         togglePlayPause,
-        setVolume: setVolumeState,
+        setVolume,
         playNext,
         playPrevious,
-        toggleRepeat,
         toggleShuffle,
-        setIsPlaying,
-        queue,
-        setQueue,
+        toggleRepeat,
+        handleSeek,
+        reportProgress,
+        reportDuration,
+        reportEnded,
         likedTracks,
         toggleLike,
+        setQueue
       }}
     >
       {children}
@@ -126,6 +260,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
 export function usePlayer() {
   const context = useContext(PlayerContext);
-  if (!context) throw new Error("usePlayer must be used within a PlayerProvider");
+  if (context === undefined) {
+    throw new Error("usePlayer must be used within a PlayerProvider");
+  }
   return context;
 }

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"; // Navigate import etməyi unutmayın
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { PlayerProvider } from "@/context/player-context";
 import { LanguageProvider } from "@/context/language-context";
 import { AuthProvider, useAuth } from "@/context/auth-context";
@@ -28,28 +28,12 @@ import SignupView from "./pages/SignupView";
 
 const queryClient = new QueryClient();
 
-// Layout Komponenti
-const AppLayout = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="flex-1 pb-24 sm:pb-28 md:pb-28 md:ml-60">
-        <MobileNav />
-        <div className="w-full min-w-0 p-4 sm:p-6 md:p-8">
-          {children}
-        </div>
-      </main>
-      <Player />
-    </div>
-  );
-};
-
-// src/App.tsx içindəki ProtectedRoute hissəsi:
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+// --- SABİT LAYOUT (Protected) ---
+// Bu komponent səhifələr dəyişsə də sabit qalır, ona görə musiqi kəsilmir.
+const ProtectedLayout = () => {
   const { isAuthenticated, isGuest, isLoading } = useAuth();
 
-  // 1. Əgər hələ yüklənirsə (və ya Spotify-dan qayıdırsa) Spinner göstər
+  // 1. Yüklənmə halı
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -58,12 +42,28 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  // 2. Yüklənmə bitdi, amma adam yoxdursa -> Loginə at
+  // 2. Giriş edilməyibsə Login-ə at
   if (!isAuthenticated && !isGuest) {
     return <Navigate to="/login" replace />;
   }
 
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <div className="flex min-h-screen bg-background text-foreground">
+      {/* Sidebar sabit qalır */}
+      <Sidebar />
+      
+      <main className="flex-1 pb-24 sm:pb-28 md:pb-28 md:ml-60 transition-all duration-300">
+        <MobileNav />
+        <div className="w-full min-w-0 p-4 sm:p-6 md:p-8 animate-in fade-in duration-300">
+          {/* Dəyişən səhifələr burada göstərilir */}
+          <Outlet />
+        </div>
+      </main>
+
+      {/* Player sabit qalır */}
+      <Player />
+    </div>
+  );
 };
 
 const App = () => (
@@ -76,22 +76,25 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                {/* PUBLIC ROUTES */}
+                {/* PUBLIC ROUTES (Player görünmür) */}
                 <Route path="/login" element={<LoginView />} />
                 <Route path="/signup" element={<SignupView />} />
 
-                {/* PROTECTED ROUTES */}
-                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-                <Route path="/charts" element={<ProtectedRoute><ChartView /></ProtectedRoute>} />
-                <Route path="/liked" element={<ProtectedRoute><LikedSongsView /></ProtectedRoute>} />
-                <Route path="/collections" element={<ProtectedRoute><CollectionsView /></ProtectedRoute>} />
-                <Route path="/recently-added" element={<ProtectedRoute><RecentlyAddedView /></ProtectedRoute>} />
-                <Route path="/ask-ai" element={<ProtectedRoute><AskAIView /></ProtectedRoute>} />
-                <Route path="/make-playlist" element={<ProtectedRoute><MakePlaylistView /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><SettingsView /></ProtectedRoute>} />
-                <Route path="/account" element={<ProtectedRoute><AccountView /></ProtectedRoute>} />
-                <Route path="/playlist/:id" element={<ProtectedRoute><PlaylistDetailView /></ProtectedRoute>} />
+                {/* PROTECTED ROUTES (Player görünür və sabitdir) */}
+                <Route element={<ProtectedLayout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/charts" element={<ChartView />} />
+                  <Route path="/liked" element={<LikedSongsView />} />
+                  <Route path="/collections" element={<CollectionsView />} />
+                  <Route path="/recently-added" element={<RecentlyAddedView />} />
+                  <Route path="/ask-ai" element={<AskAIView />} />
+                  <Route path="/make-playlist" element={<MakePlaylistView />} />
+                  <Route path="/settings" element={<SettingsView />} />
+                  <Route path="/account" element={<AccountView />} />
+                  <Route path="/playlist/:id" element={<PlaylistDetailView />} />
+                </Route>
                 
+                {/* 404 Səhifəsi */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

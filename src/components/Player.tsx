@@ -1,159 +1,262 @@
+// src/components/Player.tsx
 import { usePlayer } from "@/context/player-context";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Repeat, Shuffle, Loader2, Maximize2 } from "lucide-react";
-import ReactPlayer from "react-player/youtube";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { 
+  Play, Pause, SkipBack, SkipForward, Volume2, Heart, 
+  Shuffle, Repeat, Repeat1, Loader2, Maximize2 
+} from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Track } from "@/types"; 
+import { cn } from "@/lib/utils"; 
+import ReactPlayer from "react-player"; 
+import { useNavigate } from "react-router-dom";
+
+// DÜZƏLİŞ: TypeScript xətalarını aradan qaldırmaq üçün Player-i 'any' kimi təyin edirik
+const ReactPlayerCast = ReactPlayer as any;
 
 export function Player() {
   const {
     currentTrack,
     isPlaying,
-    youtubeUrl,
     volume,
-    isLoading,
+    currentTime,
+    duration,
+    isBuffering,
+    seekToTime,
+    setSeekToTime,
     togglePlayPause,
+    setVolume,
+    handleSeek, 
     playNext,
     playPrevious,
-    setVolume,
-    setIsPlaying,
-    likedTracks,
-    toggleLike,
     toggleRepeat,
     toggleShuffle,
     repeatMode,
-    isShuffled
+    isShuffled,
+    likedTracks, 
+    toggleLike,
+    reportProgress,
+    reportDuration,
+    reportEnded
   } = usePlayer();
 
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [playedSeconds, setPlayedSeconds] = useState(0);
+  const [localTime, setLocalTime] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
-  const [isVideoVisible, setIsVideoVisible] = useState(false); // Videonu göstər/gizlət
+  const [isVideoVisible, setIsVideoVisible] = useState(true);
+  
+  // Ref üçün 'any' istifadə edirik
+  const playerRef = useRef<any>(null);
+  
+  const navigate = useNavigate();
 
-  if (!currentTrack) return null;
+  useEffect(() => {
+    if (seekToTime !== null && playerRef.current) {
+      playerRef.current.seekTo(seekToTime);
+      setSeekToTime(null);
+    }
+  }, [seekToTime, setSeekToTime]);
 
-  const isLiked = likedTracks.some((t) => t.id === currentTrack.id);
+  useEffect(() => {
+    if (!isSeeking) {
+      setLocalTime(currentTime);
+    }
+  }, [currentTime, isSeeking]);
+
+  const onSeekChange = (value: number[]) => {
+    setLocalTime(value[0]);
+    setIsSeeking(true);
+  };
+
+  const onSeekCommit = (value: number[]) => {
+    handleSeek(value[0]);
+    setIsSeeking(false);
+  };
 
   const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border p-2 sm:p-3 z-50">
-      
-      {/* GİZLİ YOUTUBE PLAYER (Mühərrik) */}
-      <div className={cn("fixed bottom-24 right-4 w-64 h-36 rounded-lg overflow-hidden shadow-2xl border border-white/10 transition-all duration-300", 
-          isVideoVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none h-0 w-0"
-      )}>
-        {youtubeUrl && (
-          <ReactPlayer
-            url={youtubeUrl}
-            playing={isPlaying}
-            volume={volume}
-            width="100%"
-            height="100%"
-            onProgress={(state) => {
-              if (!isSeeking) {
-                setProgress(state.played * 100);
-                setPlayedSeconds(state.playedSeconds);
-              }
-            }}
-            onDuration={setDuration}
-            onEnded={playNext}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            config={{
-              playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
-            }}
-          />
-        )}
-      </div>
+  if (!currentTrack) return null;
 
-      <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-4">
+  const isLiked = likedTracks.some((t: Track) => t.id === currentTrack.id);
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border p-2 sm:p-3 z-50 safe-area-bottom shadow-2xl">
+      
+      <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-2 sm:gap-4 h-full">
         
-        {/* 1. MAHNı MƏLUMATI (Sol) */}
+        {/* 1. Sol Tərəf: Video/Albom Şəkli */}
         <div className="flex items-center gap-3 w-1/3 min-w-0">
-          {/* Videonu açmaq üçün şəkilə klikləmə imkanı */}
-          <div 
-            className="relative group cursor-pointer"
-            onClick={() => setIsVideoVisible(!isVideoVisible)}
-          >
-            <img
-              src={currentTrack.coverUrl}
-              alt={currentTrack.title}
-              className="h-12 w-12 rounded-md object-cover shadow-md group-hover:opacity-80 transition-opacity"
+          
+          <div className="relative group shrink-0 h-14 w-24 sm:h-16 sm:w-28 bg-black rounded-md overflow-hidden border border-white/10 shadow-lg">
+            
+            <ReactPlayerCast
+              ref={playerRef}
+              url={currentTrack.videoUrl || `https://www.youtube.com/watch?v=dQw4w9WgXcQ`} 
+              playing={isPlaying}
+              volume={volume}
+              muted={false}
+              width="100%"
+              height="100%"
+              style={{ 
+                position: "absolute", 
+                top: 0, 
+                left: 0, 
+                objectFit: "cover",
+                visibility: isVideoVisible ? "visible" : "hidden"
+              }}
+              // Progress callback
+              onProgress={(state: any) => {
+                if (!isSeeking && state.playedSeconds) {
+                  reportProgress(state.playedSeconds, state.loadedSeconds || 0);
+                }
+              }}
+              onDuration={reportDuration}
+              onEnded={reportEnded}
+              // YouTube konfiqurasiyası
+              config={{
+                youtube: {
+                  playerVars: { showinfo: 0, controls: 0, modestbranding: 1, origin: window.location.origin }
+                }
+              }}
             />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <Maximize2 className="w-4 h-4 text-white drop-shadow-md" />
+            
+            {!isVideoVisible && (
+              <img
+                src={currentTrack.coverUrl}
+                alt={currentTrack.title}
+                className={cn(
+                  "absolute inset-0 h-full w-full object-cover z-10",
+                  isPlaying ? "animate-pulse-slow" : ""
+                )}
+              />
+            )}
+
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+                <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="text-white h-8 w-8"
+                    onClick={() => setIsVideoVisible(!isVideoVisible)}
+                >
+                    <Maximize2 className="h-4 w-4" />
+                </Button>
             </div>
           </div>
-          
-          <div className="min-w-0 overflow-hidden">
-            <h3 className="font-semibold text-sm truncate">{currentTrack.title}</h3>
-            <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
+
+          <div className="min-w-0 overflow-hidden flex flex-col justify-center">
+            <h3 
+              className="font-semibold text-xs sm:text-sm truncate hover:underline cursor-pointer"
+              onClick={() => navigate(`/playlist/album`)}
+            >
+              {currentTrack.title}
+            </h3>
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+              {currentTrack.artist}
+            </p>
           </div>
           
-          <Button variant="ghost" size="icon" onClick={() => toggleLike(currentTrack)} className={isLiked ? "text-primary" : "text-muted-foreground"}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "hidden md:flex h-8 w-8",
+              isLiked ? "text-primary" : "text-muted-foreground"
+            )}
+            onClick={() => toggleLike(currentTrack)}
+          >
             <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
           </Button>
         </div>
 
-        {/* 2. İDARƏETMƏ (Orta) */}
-        <div className="flex flex-col items-center w-1/3 max-w-md">
-          <div className="flex items-center gap-2 mb-1">
-            <Button variant="ghost" size="icon" onClick={toggleShuffle} className={isShuffled ? "text-primary" : "text-muted-foreground"}>
+        {/* 2. Orta: İdarəetmə */}
+        <div className="flex flex-col items-center w-auto sm:w-1/3 max-w-md absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 sm:relative sm:left-auto sm:top-auto sm:transform-none">
+          <div className="flex items-center gap-3 sm:gap-5 mb-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleShuffle}
+              className={cn("hidden sm:flex h-8 w-8", isShuffled ? "text-primary" : "text-muted-foreground")}
+            >
               <Shuffle className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={playPrevious}>
+
+            <Button variant="ghost" size="icon" onClick={playPrevious} className="h-9 w-9">
               <SkipBack className="h-5 w-5 fill-current" />
             </Button>
-            
-            <Button size="icon" className="h-10 w-10 rounded-full" onClick={togglePlayPause} disabled={!youtubeUrl && isLoading}>
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
+
+            <Button
+              size="icon"
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-xl bg-white text-black hover:bg-white/90 hover:scale-105 transition-all"
+              onClick={togglePlayPause}
+              disabled={isBuffering}
+            >
+              {isBuffering ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="h-5 w-5 fill-current" />
+              ) : (
+                <Play className="h-5 w-5 fill-current ml-0.5" />
+              )}
             </Button>
 
-            <Button variant="ghost" size="icon" onClick={playNext}>
+            <Button variant="ghost" size="icon" onClick={playNext} className="h-9 w-9">
               <SkipForward className="h-5 w-5 fill-current" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={toggleRepeat} className={repeatMode !== "off" ? "text-primary" : "text-muted-foreground"}>
-              <Repeat className="h-4 w-4" />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleRepeat}
+              className={cn("hidden sm:flex h-8 w-8", repeatMode !== "off" ? "text-primary" : "text-muted-foreground")}
+            >
+              {repeatMode === "one" ? <Repeat1 className="h-4 w-4" /> : <Repeat className="h-4 w-4" />}
             </Button>
           </div>
 
-          <div className="flex items-center gap-2 w-full">
-            <span className="text-xs text-muted-foreground w-8 text-right">{formatTime(playedSeconds)}</span>
+          <div className="flex items-center gap-2 w-full sm:w-96">
+            <span className="text-[10px] text-muted-foreground w-9 text-right tabular-nums hidden sm:block">
+              {formatTime(localTime)}
+            </span>
             <Slider
-              value={[progress]}
-              max={100}
-              step={0.1}
-              className="flex-1 h-1.5"
-              onValueChange={(val) => { setIsSeeking(true); setProgress(val[0]); }}
-              onValueCommit={(val) => {
-                 // ReactPlayer üçün seek funksiyası burada mürəkkəb ola bilər
-                 // Sadəlik üçün yalnız vizual dəyişir, amma player obyektinə çatmaq üçün ref lazımdır.
-                 // Hələlik buranı sadə saxlayırıq.
-                 setIsSeeking(false);
-              }}
+              value={[localTime]}
+              max={duration || 100}
+              step={1}
+              className="w-32 sm:flex-1 cursor-pointer h-1.5"
+              onValueChange={onSeekChange}
+              onValueCommit={onSeekCommit}
             />
-            <span className="text-xs text-muted-foreground w-8">{formatTime(duration)}</span>
+            <span className="text-[10px] text-muted-foreground w-9 tabular-nums hidden sm:block">
+              {formatTime(duration)}
+            </span>
           </div>
         </div>
 
-        {/* 3. SƏS (Sağ) */}
-        <div className="hidden md:flex items-center justify-end gap-2 w-1/3">
+        {/* 3. Sağ: Səs */}
+        <div className="hidden sm:flex items-center justify-end gap-2 w-1/3">
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <Slider
             value={[volume * 100]}
             max={100}
             step={1}
             className="w-24"
-            onValueChange={(val) => setVolume(val[0] / 100)}
+            onValueChange={([value]) => setVolume(value / 100)}
           />
         </div>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("flex sm:hidden h-8 w-8 ml-auto", isLiked ? "text-primary" : "text-muted-foreground")}
+          onClick={() => toggleLike(currentTrack)}
+        >
+          <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
+        </Button>
+
       </div>
     </div>
   );
