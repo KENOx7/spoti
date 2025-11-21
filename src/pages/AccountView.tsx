@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { User, LogOut, Mail, Shield, LogIn, AlertCircle, Camera, Loader2 } from "lucide-react";
-import { Button } from "ui/button";
-import { Input } from "ui/input";
-import { Label } from "ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
-import { Alert, AlertDescription, AlertTitle } from "ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useLanguage } from "@/context/language-context";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";

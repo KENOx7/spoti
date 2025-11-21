@@ -3,7 +3,7 @@ import { useLanguage } from "@/context/language-context";
 import { Clock, Play } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { usePlayer } from "@/context/player-context";
-import { Button } from "ui/button";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Track } from "@/types";
 import { storage } from "@/lib/storage";
@@ -32,7 +32,7 @@ export default function RecentlyAddedView() {
   const handlePlayAll = () => {
     if (recentTracks.length > 0) {
       setQueue(recentTracks);
-      void playTrack(recentTracks[0]);
+      playTrack(recentTracks[0]);
     }
   };
 

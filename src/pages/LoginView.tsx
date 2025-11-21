@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
-import { Button } from "ui/button";
-import { Input } from "ui/input";
-import { Label } from "ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, Music, Chrome, User, ArrowRight, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +14,20 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "ui/select";
+} from "@/components/ui/select";
+
+const SPOTIFY_SCOPES = [
+  "user-read-email",
+  "user-read-private",
+  "streaming",
+  "app-remote-control",
+  "user-read-playback-state",
+  "user-modify-playback-state",
+  "user-read-currently-playing",
+  "playlist-read-private",
+  "playlist-read-collaborative",
+  "user-library-read",
+].join(" ");
 
 // Şəkil
 const backgroundImage = new URL("./Raper album cover.jpg", import.meta.url).href;
@@ -42,16 +55,13 @@ export default function LoginView() {
       setIsLoading(true);
       
       // Spotify üçün xüsusi icazələr (scopes)
-      const scopes = provider === 'spotify' 
-        ? 'user-read-email user-read-private user-library-read playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing streaming'
-        : undefined;
+      const scopes = provider === "spotify" ? SPOTIFY_SCOPES : undefined;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
           redirectTo: window.location.origin,
           scopes: scopes, // İcazələri bura əlavə edirik
-          flowType: "pkce",
         },
       });
       if (error) throw error;

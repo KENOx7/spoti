@@ -20,10 +20,11 @@ const mapSpotifyTrackToAppTrack = (rawSpotifyTrack: any): Track | null => {
     coverUrl:
       track.album?.images?.[0]?.url ||
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60",
-    // Spotify tam playback üçün URI və preview üçün audio link saxlayırıq
-    audioUrl: track.preview_url || undefined,
-    spotifyUri: track.uri,
+    // preview_url olsa belə, əsas playback üçün Spotify URI istifadə olunacaq
+    audioUrl: track.preview_url || "",
     liked: false,
+    source: "spotify",
+    spotifyUri: track.uri || null,
   };
 };
 

@@ -1,5 +1,5 @@
 import { Track } from "@/types";
-import { Button } from "ui/button";
+import { Button } from "@/components/ui/button";
 import { Heart, Play, Pause, MoreHorizontal } from "lucide-react";
 import { usePlayer } from "@/context/player-context";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
 interface TrackItemProps {
   track: Track;
@@ -49,7 +49,7 @@ export const TrackItem = memo(function TrackItem({ track, index }: TrackItemProp
           setQueue([...queue, track]);
         }
       }
-      void playTrack(track);
+      playTrack(track);
     }
   }, [isCurrentTrack, isPlaying, pauseTrack, playTrack, track, queue, setQueue]);
 

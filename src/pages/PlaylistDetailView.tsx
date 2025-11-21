@@ -5,7 +5,7 @@ import { usePlayer } from "@/context/player-context";
 import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";
 import { PageHeader } from "@/components/PageHeader";
-import { Button } from "ui/button";
+import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-context";
@@ -42,7 +42,7 @@ export default function PlaylistDetailView() {
   const handlePlayAll = () => {
     if (playlist && playlist.tracks && playlist.tracks.length > 0) {
       setQueue(playlist.tracks);
-      void playTrack(playlist.tracks[0]);
+      playTrack(playlist.tracks[0]);
     }
   };
 

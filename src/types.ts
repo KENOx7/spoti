@@ -5,9 +5,10 @@ export interface Track {
   album: string;
   duration: number; // in seconds
   coverUrl: string;
-  audioUrl?: string;
-  spotifyUri?: string;
+  audioUrl: string;
   liked?: boolean;
+  source?: "local" | "spotify";
+  spotifyUri?: string | null;
 }
 
 export interface Playlist {

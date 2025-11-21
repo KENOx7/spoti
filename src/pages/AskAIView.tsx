@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { Button } from "ui/button";
-import { Input } from "ui/input";
-import { Card } from "ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/context/language-context";
 import { usePlayer } from "@/context/player-context";
 import { Track } from "@/types";
@@ -192,7 +192,7 @@ export default function AskAIView() {
   const handlePlayAllFromAI = (tracks: Track[]) => {
     setQueue(tracks);
     if (tracks.length > 0) {
-      void playTrack(tracks[0]);
+      playTrack(tracks[0]);
     }
   };
 

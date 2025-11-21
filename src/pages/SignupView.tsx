@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { Button } from "ui/button";
-import { Input } from "ui/input";
-import { Label } from "ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Mail, Lock, Globe, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-context";
@@ -13,7 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "ui/select";
+} from "@/components/ui/select";
 
 // Şəkil (Sizin fayl adınızla eyni)
 const backgroundImage = new URL("./Raper album cover.jpg", import.meta.url).href;

@@ -5,7 +5,7 @@ import { useLanguage } from "@/context/language-context";
 import { Trophy, Play } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { usePlayer } from "@/context/player-context";
-import { Button } from "ui/button";
+import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 
 export default function ChartView() {
@@ -22,7 +22,7 @@ export default function ChartView() {
   const handlePlayAll = () => {
     if (chartTracks.length > 0) {
       setQueue(chartTracks);
-      void playTrack(chartTracks[0]);
+      playTrack(chartTracks[0]);
     }
   };
 

@@ -4,7 +4,7 @@ import { Heart, Play } from "lucide-react";
 import { useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { usePlayer } from "@/context/player-context";
-import { Button } from "ui/button";
+import { Button } from "@/components/ui/button";
 
 export default function LikedSongsView() {
   const { t } = useLanguage();
@@ -20,7 +20,7 @@ export default function LikedSongsView() {
   const handlePlayAll = () => {
     if (likedTracks.length > 0) {
       setQueue(likedTracks);
-      void playTrack(likedTracks[0]);
+      playTrack(likedTracks[0]);
     }
   };
 

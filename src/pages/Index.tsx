@@ -3,7 +3,7 @@ import { mockTracks } from "@/data/tracks";
 import { useLanguage } from "@/context/language-context";
 import { usePlayer } from "@/context/player-context";
 import { useAuth } from "@/context/auth-context";
-import { Button } from "ui/button";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { PlaylistCarousel } from "@/components/PlaylistCarousel";
 import { storage } from "@/lib/storage";

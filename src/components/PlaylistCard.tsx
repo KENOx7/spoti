@@ -1,7 +1,7 @@
 // PlaylistCard.tsx
 import { Playlist } from "@/types";
-import { Card, CardContent } from "ui/card";
-import { Button } from "ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Play, Music } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/context/player-context";
@@ -30,7 +30,7 @@ export function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
     e.stopPropagation();
     if (playlist.tracks.length > 0) {
       setQueue(playlist.tracks);
-      void playTrack(playlist.tracks[0]);
+      playTrack(playlist.tracks[0]);
     }
   };
 
