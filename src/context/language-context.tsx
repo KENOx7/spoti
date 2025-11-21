@@ -10,6 +10,7 @@ interface Translations {
 
 const translations: Translations = {
   en: {
+    // Navigation
     home: "Home",
     charts: "Charts",
     likedSongs: "Liked Songs",
@@ -20,6 +21,8 @@ const translations: Translations = {
     settings: "Settings",
     askAI: "Ask AI",
     appName: "Music",
+    
+    // Auth & Profile
     welcomeBack: "Welcome Back",
     enterMusicWorld: "Enter the world of music",
     continueWithGoogle: "Continue with Google",
@@ -36,8 +39,6 @@ const translations: Translations = {
     guestContinue: "Continue as Guest",
     welcomeUser: "Welcome",
     guest: "Guest",
-    
-    // YENİ ƏLAVƏLƏR
     manageProfile: "Manage your profile information",
     security: "Security",
     updatePassword: "Update your password",
@@ -52,6 +53,9 @@ const translations: Translations = {
     guestMessage: "You are currently in Guest mode. Please log in to save your playlists and access all features.",
     loginOrSignup: "Login / Sign Up",
     endSession: "End Session",
+    profileSaved: "Profile information saved.",
+    socialAccount: "Social Account",
+    emailAccount: "Email Account",
     
     // Player & Common
     play: "Play",
@@ -61,20 +65,41 @@ const translations: Translations = {
     search: "Search",
     trending: "Trending Now",
     myPlaylists: "My Playlists",
+    playAll: "Play All", // ƏLAVƏ EDİLDİ
+    songs: "songs",
+    song: "song",
+    track: "track",
+    tracks: "tracks",
+    
+    // Playlists & Collections
     createPlaylist: "Create Playlist",
     playlistName: "Playlist Name",
-    profileSaved: "Profile information saved.",
+    playlistDescription: "Description (optional)", // ƏLAVƏ EDİLDİ
+    emptyPlaylist: "This playlist is empty", // ƏLAVƏ EDİLDİ
+    addSongsToPlaylist: "Add songs to this playlist using the menu on any track",
+    playlistDeleted: "Playlist deleted",
+    tryAgain: "Please try again",
+    error: "Error",
+    
+    // Settings
     language: "Language",
     appearance: "Appearance",
+    darkMode: "Dark Mode", // ƏLAVƏ EDİLDİ
     notifications: "Notifications",
     newReleases: "New Releases",
     artistUpdates: "Artist Updates",
     uploading: "Uploading...",
     avatarUpdated: "Profile picture updated successfully!",
     uploadError: "Error uploading image.",
-    changeAvatar: "Change Photo"
+    changeAvatar: "Change Photo",
+
+    // Ask AI
+    askAIDescription: "Get personalized music recommendations powered by AI", // ƏLAVƏ EDİLDİ
+    aiWelcomeMessage: "Hi! I'm your AI music assistant. Tell me what you're in the mood for, and I'll recommend some songs.", // ƏLAVƏ EDİLDİ
+    askAIPlaceholder: "E.g., 'Sad songs for a rainy day' or 'Upbeat pop for workout'"
   },
   az: {
+    // Naviqasiya
     home: "Ana Səhifə",
     charts: "Hitlər",
     likedSongs: "Bəyənilənlər",
@@ -85,6 +110,8 @@ const translations: Translations = {
     settings: "Tənzimləmələr",
     askAI: "AI-dan Soruş",
     appName: "Musiqi",
+
+    // Giriş & Profil
     welcomeBack: "Xoş Gəlmisiniz",
     enterMusicWorld: "Devora musiqi dünyasına daxil olun",
     continueWithGoogle: "Google ilə davam et",
@@ -101,8 +128,6 @@ const translations: Translations = {
     guestContinue: "Qonaq kimi davam et",
     welcomeUser: "Xoş gördük",
     guest: "Qonaq",
-
-    // YENİ ƏLAVƏLƏR
     manageProfile: "Profil məlumatlarınızı idarə edin",
     security: "Təhlükəsizlik",
     updatePassword: "Şifrənizi yeniləyin",
@@ -117,6 +142,9 @@ const translations: Translations = {
     guestMessage: "Siz hazırda Qonaq rejimindəsiniz. Pleylistlərinizi yadda saxlamaq və bütün funksiyalardan istifadə etmək üçün zəhmət olmasa daxil olun.",
     loginOrSignup: "Daxil ol / Qeydiyyat",
     endSession: "Sessiyanı Bitir",
+    profileSaved: "Profil məlumatları yadda saxlanıldı.",
+    socialAccount: "Sosial Hesab",
+    emailAccount: "Email Hesabı",
 
     // Pleyer & Ümumi
     play: "Oynat",
@@ -126,18 +154,38 @@ const translations: Translations = {
     search: "Axtarış",
     trending: "Trendlər",
     myPlaylists: "Pleylistlərim",
+    playAll: "Hamısını Oynat", // ƏLAVƏ EDİLDİ
+    songs: "mahnı",
+    song: "mahnı",
+    track: "treklər",
+    tracks: "trek",
+
+    // Pleylistlər & Kolleksiyalar
     createPlaylist: "Pleylist Yarat",
     playlistName: "Pleylist Adı",
-    profileSaved: "Profil məlumatları yadda saxlanıldı.",
+    playlistDescription: "Açıqlama (könüllü)", // ƏLAVƏ EDİLDİ
+    emptyPlaylist: "Bu pleylist boşdur", // ƏLAVƏ EDİLDİ
+    addSongsToPlaylist: "Mahnı menyusundan istifadə edərək bura mahnı əlavə edin",
+    playlistDeleted: "Pleylist silindi",
+    tryAgain: "Yenidən cəhd edin",
+    error: "Xəta",
+
+    // Tənzimləmələr
     language: "Dil",
     appearance: "Görünüş",
+    darkMode: "Qaranlıq Rejim", // ƏLAVƏ EDİLDİ
     notifications: "Bildirişlər",
     newReleases: "Yeni Çıxışlar",
     artistUpdates: "Sənətçi Yenilikləri",
     uploading: "Yüklənir...",
     avatarUpdated: "Profil şəkli yeniləndi!",
     uploadError: "Şəkil yüklənərkən xəta baş verdi.",
-    changeAvatar: "Şəkli Dəyiş"
+    changeAvatar: "Şəkli Dəyiş",
+
+    // Ask AI
+    askAIDescription: "AI tərəfindən dəstəklənən fərdi musiqi tövsiyələri alın", // ƏLAVƏ EDİLDİ
+    aiWelcomeMessage: "Salam! Mən sizin AI musiqi köməkçinizəm. Nə dinləmək istədiyinizi deyin, sizə mahnılar təklif edim.", // ƏLAVƏ EDİLDİ
+    askAIPlaceholder: "Məsələn: 'Yağışlı hava üçün kədərli mahnılar' və ya 'İdman üçün ritmik pop'"
   },
 };
 
