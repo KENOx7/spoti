@@ -1,65 +1,71 @@
 import { Track } from "@/types";
 
-// === AYARLAR ===
-// Bu serverlər birbaşa MP3 (M4A) axını verir.
-// Brauzer bunları "fayl" kimi görür.
-const STREAM_SERVERS = [
+const TIMEOUT = 5000;
+
+// === 1. AXTARIŞ SERVERLƏRİ (ID tapmaq üçün) ===
+// Bu serverlər CORS-a icazə verir, Proxy lazım deyil.
+const SEARCH_INSTANCES = [
   "https://inv.tux.pizza",
+  "https://invidious.projectsegfau.lt",
   "https://vid.puffyan.us",
-  "https://invidious.fdn.fr",
-  "https://invidious.perennialte.ch",
   "https://yt.artemislena.eu",
-  "https://invidious.drgns.space"
+  "https://invidious.drgns.space",
+  "https://invidious.fdn.fr"
 ];
 
-// Proxy (DuckDuckGo üçün)
-const PROXY = "https://api.allorigins.win/raw?url=";
+// === 2. STREAM SERVERLƏRİ (Cobalt - Yüksək Keyfiyyət) ===
+const COBALT_INSTANCES = [
+  "https://cobalt.sipmaker.net",
+  "https://api.cobalt.7io.org",
+  "https://co.wuk.sh",
+  "https://cobalt.tools",
+  "https://api.cobalt.biz"
+];
 
-// === 1. ID TAPMAQ (DuckDuckGo - HTML Scraping) ===
-async function findVideoId(artist: string, title: string): Promise<string | null> {
-  const query = `${artist} - ${title} official audio`;
-  console.log(`🕵️ Axtarış: ${query}`);
-
-  // DuckDuckGo-nun yüngül versiyası (reklamsız)
-  const targetUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query + " site:youtube.com")}`;
-  const proxyUrl = `${PROXY}${encodeURIComponent(targetUrl)}`;
-
+// Timeout helper
+const fetchWithTimeout = async (url: string, options: any = {}) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), TIMEOUT);
   try {
-    const res = await fetch(proxyUrl);
-    const html = await res.text();
-
-    // HTML içindən ilk YouTube linkini tapırıq
-    // v=XXXXXXXXXXX (11 simvol)
-    const regex = /watch\?v=([a-zA-Z0-9_-]{11})/g;
-    const match = regex.exec(html);
-
-    if (match && match[1]) {
-      console.log(`🎯 ID Tapıldı: ${match[1]}`);
-      return match[1];
-    }
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
   } catch (e) {
-    console.error("Axtarış xətası:", e);
+    clearTimeout(id);
+    throw e;
   }
-  return null;
+};
+
+function cleanQuery(artist: string, title: string): string {
+  return `${artist} - ${title}`
+    .replace(/feat\.|ft\.|official|video|audio|lyrics/gi, "")
+    .replace(/\(.*?\)|\[.*?\]/g, "")
+    .trim();
 }
 
-// === 2. STREAM LİNKİ YARATMAQ (Link Generator) ===
-async function checkStreamUrl(videoId: string): Promise<string | null> {
+// === ADDIM 1: ID TAPMAQ (Direct API) ===
+async function findVideoId(query: string): Promise<string | null> {
+  console.log(`🔍 Axtarış: "${query}"`);
+  
   // Serverləri qarışdırırıq
-  const shuffled = [...STREAM_SERVERS].sort(() => Math.random() - 0.5);
+  const shuffled = [...SEARCH_INSTANCES].sort(() => Math.random() - 0.5);
 
-  for (const domain of shuffled) {
+  for (const base of shuffled) {
     try {
-      // Bu "sehirli" linkdir. Buna girən kimi musiqi yüklənir.
-      // itag=140 -> Yüksək keyfiyyətli audio (m4a)
-      const magicUrl = `${domain}/latest_version?id=${videoId}&itag=140`;
-
-      // Yoxlayaq görək link işləyirmi (HEAD sorğusu - yükləmir, sadəcə yoxlayır)
-      const res = await fetch(magicUrl, { method: "HEAD" });
+      // Invidious API (Proxy-siz, birbaşa)
+      const url = `${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+      const res = await fetchWithTimeout(url);
       
-      if (res.ok) {
-        console.log(`✅ Stream Hazırdır: ${domain}`);
-        return magicUrl;
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) continue;
+
+      // İlk nəticəni götürürük
+      const videoId = data[0].videoId;
+      if (videoId) {
+        console.log(`🎯 ID Tapıldı [${base}]: ${videoId}`);
+        return videoId;
       }
     } catch (e) {
       continue;
@@ -68,7 +74,58 @@ async function checkStreamUrl(videoId: string): Promise<string | null> {
   return null;
 }
 
-// === 3. iTUNES FALLBACK (Ehtiyat) ===
+// === ADDIM 2: STREAM LİNKİ (Cobalt + Fallback) ===
+async function getStreamUrl(videoId: string): Promise<string | null> {
+  const targetUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+  // 1. COBALT (Ən təmiz səs)
+  for (const instance of COBALT_INSTANCES) {
+    try {
+      const res = await fetchWithTimeout(`${instance}/api/json`, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          url: targetUrl,
+          isAudioOnly: true,
+          aFormat: "mp3"
+        })
+      });
+
+      const data = await res.json();
+      if (data.url) {
+        console.log(`✅ Stream (Cobalt): ${instance}`);
+        return data.url;
+      }
+    } catch (e) { continue; }
+  }
+
+  // 2. INVIDIOUS FALLBACK (Əgər Cobalt işləməsə)
+  // Birbaşa Invidious-dan audio axınını götürürük
+  for (const base of SEARCH_INSTANCES) {
+    try {
+        const res = await fetchWithTimeout(`${base}/api/v1/videos/${videoId}`);
+        if(!res.ok) continue;
+        const data = await res.json();
+        
+        const adaptive = data.adaptiveFormats || [];
+        const audio = adaptive
+            .filter((s: any) => s.type.includes("audio"))
+            .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+            
+        if (audio?.url) {
+            console.log(`✅ Stream (Invidious Fallback): ${base}`);
+            return audio.url;
+        }
+    } catch(e) { continue; }
+  }
+
+  return null;
+}
+
+// === 3. ITUNES (Son çarə) ===
 async function searchiTunes(query: string): Promise<string | null> {
   try {
     const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`);
@@ -79,19 +136,18 @@ async function searchiTunes(query: string): Promise<string | null> {
 
 // === ƏSAS FUNKSİYA ===
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  const cleanArtist = track.artist.replace(/feat\.|ft\./gi, "").trim();
-  const cleanTitle = track.title.replace(/\(.*\)/g, "").trim();
-
+  const baseQuery = cleanQuery(track.artist, track.title);
+  
   // 1. ID Tap
-  const videoId = await findVideoId(cleanArtist, cleanTitle);
+  const videoId = await findVideoId(baseQuery);
 
   if (videoId) {
-    // 2. İşlək Stream Linki Tap
-    const streamUrl = await checkStreamUrl(videoId);
+    // 2. Stream Linki Tap
+    const streamUrl = await getStreamUrl(videoId);
     if (streamUrl) return streamUrl;
   }
 
   // 3. Fallback
   console.warn("⚠️ iTunes Fallback");
-  return await searchiTunes(`${cleanArtist} - ${cleanTitle}`);
+  return await searchiTunes(baseQuery);
 }
