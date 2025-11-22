@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Mail, Lock, Music, Chrome, User, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-context";
 
@@ -13,7 +13,6 @@ import { useLanguage } from "@/context/language-context";
 const backgroundImage = new URL("./Raper album cover.jpg", import.meta.url).href;
 
 export default function LoginView() {
-  // isGuest-i yoxlamadan çıxardıq ki, qonaqlar login səhifəsini görə bilsin
   const { isAuthenticated, continueAsGuest } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,8 +22,6 @@ export default function LoginView() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Yalnız HƏQİQİ HESABLA giriş edilibsə Ana Səhifəyə at
-  // Qonaqdırsa, bu səhifədə qalıb hesab aça bilsin
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/", { replace: true });
@@ -42,7 +39,6 @@ export default function LoginView() {
       });
 
       if (error) throw error;
-      // Uğurlu olarsa useEffect avtomatik yönləndirəcək
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -50,6 +46,26 @@ export default function LoginView() {
         description: error.message || "Giriş zamanı xəta baş verdi",
       });
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'spotify') => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Xəta",
+        description: error.message || `${provider} ilə giriş zamanı xəta`,
+      });
       setIsLoading(false);
     }
   };
@@ -88,6 +104,40 @@ export default function LoginView() {
         </div>
 
         <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl">
+          
+          {/* --- SOCIAL LOGIN BUTTONS (ƏLAVƏ EDİLDİ) --- */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <Button 
+              variant="outline" 
+              className="bg-white/5 border-white/10 hover:bg-white/10 hover:text-white text-white"
+              onClick={() => handleSocialLogin('spotify')}
+              disabled={isLoading}
+            >
+              <Music className="mr-2 h-4 w-4 text-green-500" />
+              Spotify
+            </Button>
+            <Button 
+              variant="outline" 
+              className="bg-white/5 border-white/10 hover:bg-white/10 hover:text-white text-white"
+              onClick={() => handleSocialLogin('google')}
+              disabled={isLoading}
+            >
+              <Chrome className="mr-2 h-4 w-4 text-red-500" />
+              Google
+            </Button>
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-black/50 px-2 text-gray-400 backdrop-blur-md rounded">
+                {t("orEmail")}
+              </span>
+            </div>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-200">{t("email")}</Label>
@@ -136,7 +186,7 @@ export default function LoginView() {
               <span className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-transparent px-2 text-muted-foreground bg-black/50 backdrop-blur-md rounded">Or</span>
+              <span className="bg-black/50 px-2 text-gray-400 backdrop-blur-md rounded">Or</span>
             </div>
           </div>
 
