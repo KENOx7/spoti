@@ -1,37 +1,68 @@
 import { Track } from "@/types";
 
-// Sorğunu təmizləyən funksiya (Axtarışın dəqiq olması üçün bunu saxlamaq məsləhətdir)
-function cleanQuery(artist: string, title: string): string {
-  return `${artist} - ${title}`
-    .replace(/feat\.|ft\.|official|video|audio|lyrics/gi, "")
-    .replace(/\(.*?\)/g, "")
+// Sorğunu təmizləyən funksiya
+function cleanQuery(text: string): string {
+  return text
+    .replace(/feat\.|ft\.|official|video|audio|lyrics|remastered|remaster|mix/gi, "")
+    .replace(/\(.*?\)/g, "") // Mötərizələri silir (bəzən vacib ola bilər, amma iTunes üçün təmiz ad yaxşıdır)
     .replace(/\[.*?\]/g, "")
+    .replace(/\s+/g, " ")    // Artıq boşluqları silir
     .trim();
 }
 
-// === YALNIZ ITUNES AXTARIŞI ===
+// === ITUNES AXTARIŞI (Ümumi funksiya) ===
 async function searchiTunes(query: string): Promise<string | null> {
   try {
-    const res = await fetch(
-      `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`
-    );
+    // entity=song və limit=1 istifadə edirik
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`;
+    const res = await fetch(url);
     
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`❌ iTunes API Xətası (${query}):`, res.statusText);
+      return null;
+    }
 
     const data = await res.json();
-    // iTunes 30 saniyəlik preview qaytarır
-    return data.results?.[0]?.previewUrl || null;
+    
+    if (data.resultCount === 0 || !data.results?.[0]?.previewUrl) {
+      console.warn(`⚠️ iTunes-da tapılmadı: "${query}"`);
+      return null;
+    }
+
+    // iTunes 30 saniyəlik preview qaytarır (.m4a formatında)
+    console.log(`✅ iTunes Tapdı: "${query}" -> ${data.results[0].trackName}`);
+    return data.results[0].previewUrl;
   } catch (e) {
-    console.error("iTunes error:", e);
+    console.error("iTunes şəbəkə xətası:", e);
     return null;
   }
 }
 
 // === ƏSAS FUNKSİYA ===
-// Adı dəyişmədim ki, layihədə başqa yerlərdə import xətası verməsin
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  const query = cleanQuery(track.artist, track.title);
-  console.log(`🎵 iTunes Axtarış: "${query}"`);
+  // 1. Cəhd: Tam dəqiqliklə axtar (Artist + Mahnı)
+  const artistClean = cleanQuery(track.artist);
+  const titleClean = cleanQuery(track.title);
   
-  return await searchiTunes(query);
+  const fullQuery = `${artistClean} - ${titleClean}`;
+  let url = await searchiTunes(fullQuery);
+
+  // 2. Cəhd (Fallback): Əgər tapılmadısa, yalnız mahnı adı ilə axtar
+  if (!url) {
+    console.log(`🔄 Təkrar axtarış edilir (Yalnız ad): "${titleClean}"`);
+    url = await searchiTunes(titleClean);
+  }
+
+  // 3. Cəhd (Fallback): Əgər yenə tapılmadısa, orijinal adla axtar (təmizləmədən)
+  if (!url) {
+    const rawQuery = `${track.artist} ${track.title}`;
+    console.log(`🔄 Son şans axtarışı: "${rawQuery}"`);
+    url = await searchiTunes(rawQuery);
+  }
+
+  if (!url) {
+    console.error(`❌ HEÇ BİR NƏTİCƏ TAPILMADI: ${track.artist} - ${track.title}`);
+  }
+
+  return url;
 }
