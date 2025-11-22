@@ -65,7 +65,7 @@ const translations: Translations = {
     search: "Search",
     trending: "Trending Now",
     myPlaylists: "My Playlists",
-    playAll: "Play All", // ƏLAVƏ EDİLDİ
+    playAll: "Play All",
     songs: "songs",
     song: "song",
     track: "track",
@@ -74,8 +74,8 @@ const translations: Translations = {
     // Playlists & Collections
     createPlaylist: "Create Playlist",
     playlistName: "Playlist Name",
-    playlistDescription: "Description (optional)", // ƏLAVƏ EDİLDİ
-    emptyPlaylist: "This playlist is empty", // ƏLAVƏ EDİLDİ
+    playlistDescription: "Description (optional)",
+    emptyPlaylist: "This playlist is empty",
     addSongsToPlaylist: "Add songs to this playlist using the menu on any track",
     playlistDeleted: "Playlist deleted",
     tryAgain: "Please try again",
@@ -84,7 +84,7 @@ const translations: Translations = {
     // Settings
     language: "Language",
     appearance: "Appearance",
-    darkMode: "Dark Mode", // ƏLAVƏ EDİLDİ
+    darkMode: "Dark Mode",
     notifications: "Notifications",
     newReleases: "New Releases",
     artistUpdates: "Artist Updates",
@@ -93,10 +93,18 @@ const translations: Translations = {
     uploadError: "Error uploading image.",
     changeAvatar: "Change Photo",
 
-    // Ask AI
-    askAIDescription: "Get personalized music recommendations powered by AI", // ƏLAVƏ EDİLDİ
-    aiWelcomeMessage: "Hi! I'm your AI music assistant. Tell me what you're in the mood for, and I'll recommend some songs.", // ƏLAVƏ EDİLDİ
-    askAIPlaceholder: "E.g., 'Sad songs for a rainy day' or 'Upbeat pop for workout'"
+    // Ask AI (YENİLƏNİB)
+    askAIDescription: "Get personalized music recommendations powered by AI",
+    aiWelcomeMessage: "Hi! I'm your AI music assistant. Choose a suggestion below or ask me anything!",
+    askAIPlaceholder: "Describe the vibe...",
+    suggestionSad: "😢 Sad songs",
+    suggestionWorkout: "💪 Workout energy",
+    suggestionChill: "☕ Chill vibes",
+    suggestionFocus: "🧠 Focus & Study",
+    suggestionParty: "🎉 Party hits",
+    suggestionRock: "🎸 Classic Rock",
+    searchingItunes: "Searching for previews on iTunes...",
+    noTracksFound: "AI suggested songs, but I couldn't find previews on iTunes."
   },
   az: {
     // Naviqasiya
@@ -154,7 +162,7 @@ const translations: Translations = {
     search: "Axtarış",
     trending: "Trendlər",
     myPlaylists: "Pleylistlərim",
-    playAll: "Hamısını Oynat", // ƏLAVƏ EDİLDİ
+    playAll: "Hamısını Oynat",
     songs: "mahnı",
     song: "mahnı",
     track: "treklər",
@@ -163,8 +171,8 @@ const translations: Translations = {
     // Pleylistlər & Kolleksiyalar
     createPlaylist: "Pleylist Yarat",
     playlistName: "Pleylist Adı",
-    playlistDescription: "Açıqlama (könüllü)", // ƏLAVƏ EDİLDİ
-    emptyPlaylist: "Bu pleylist boşdur", // ƏLAVƏ EDİLDİ
+    playlistDescription: "Açıqlama (könüllü)",
+    emptyPlaylist: "Bu pleylist boşdur",
     addSongsToPlaylist: "Mahnı menyusundan istifadə edərək bura mahnı əlavə edin",
     playlistDeleted: "Pleylist silindi",
     tryAgain: "Yenidən cəhd edin",
@@ -173,7 +181,7 @@ const translations: Translations = {
     // Tənzimləmələr
     language: "Dil",
     appearance: "Görünüş",
-    darkMode: "Qaranlıq Rejim", // ƏLAVƏ EDİLDİ
+    darkMode: "Qaranlıq Rejim",
     notifications: "Bildirişlər",
     newReleases: "Yeni Çıxışlar",
     artistUpdates: "Sənətçi Yenilikləri",
@@ -182,10 +190,18 @@ const translations: Translations = {
     uploadError: "Şəkil yüklənərkən xəta baş verdi.",
     changeAvatar: "Şəkli Dəyiş",
 
-    // Ask AI
-    askAIDescription: "AI tərəfindən dəstəklənən fərdi musiqi tövsiyələri alın", // ƏLAVƏ EDİLDİ
-    aiWelcomeMessage: "Salam! Mən sizin AI musiqi köməkçinizəm. Nə dinləmək istədiyinizi deyin, sizə mahnılar təklif edim.", // ƏLAVƏ EDİLDİ
-    askAIPlaceholder: "Məsələn: 'Yağışlı hava üçün kədərli mahnılar' və ya 'İdman üçün ritmik pop'"
+    // Ask AI (YENİLƏNİB)
+    askAIDescription: "Süni zəka ilə musiqi zövqünüzə uyğun mahnılar tapın",
+    aiWelcomeMessage: "Salam! Mən sənin musiqi köməkçinəm. Aşağıdakı hazır seçimlərdən birini seç və ya özün yaz!",
+    askAIPlaceholder: "Necə bir mahnı axtarırsan?",
+    suggestionSad: "😢 Kədərli mahnılar",
+    suggestionWorkout: "💪 İdman enerjisi",
+    suggestionChill: "☕ Sakitləşdirici",
+    suggestionFocus: "🧠 Dərs və Fokus",
+    suggestionParty: "🎉 Parti hitləri",
+    suggestionRock: "🎸 Klassik Rok",
+    searchingItunes: "iTunes-da mahnılar axtarılır...",
+    noTracksFound: "AI mahnı təklif etdi, amma iTunes-da tapılmadı."
   },
 };
 
