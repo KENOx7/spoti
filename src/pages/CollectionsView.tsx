@@ -1,169 +1,152 @@
+import { TrackItem } from "@/components/TrackItem";
+import { mockTracks } from "@/data/tracks";
 import { useLanguage } from "@/context/language-context";
+import { usePlayer } from "@/context/player-context";
+import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Play, Import, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { PlaylistCarousel } from "@/components/PlaylistCarousel";
 import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/context/auth-context";
-import { fetchSpotifyPlaylists } from "@/lib/spotify";
+import { Play } from "lucide-react";
 
-export default function CollectionsView() {
+export default function Index() {
   const { t } = useLanguage();
+  const { user, isGuest } = useAuth();
+  const { setQueue, likedTracks } = usePlayer();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { session } = useAuth();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     setPlaylists(storage.getPlaylists());
   }, []);
 
-  const handleImportSpotify = async () => {
-    const accessToken = session?.provider_token;
-
-    if (!accessToken) {
-      toast({
-        variant: "destructive",
-        title: "Xəta",
-        description: "Spotify bağlantısı yoxdur. Yenidən giriş edin.",
-      });
-      return;
+  useEffect(() => {
+    if (mockTracks.length > 0) {
+      setQueue(mockTracks);
     }
+  }, [setQueue]);
 
-    setIsImporting(true);
-    try {
-      const spotifyPlaylists = await fetchSpotifyPlaylists(accessToken);
-      
-      if (spotifyPlaylists.length === 0) {
-        toast({ title: "Məlumat", description: "Spotify-da playlist tapılmadı." });
-      } else {
-        const currentPlaylists = storage.getPlaylists();
-        const uniqueNewPlaylists = spotifyPlaylists.filter(
-          newP => !currentPlaylists.some(currP => currP.id === newP.id)
-        );
-        const newAllPlaylists = [...currentPlaylists, ...uniqueNewPlaylists];
-        
-        storage.savePlaylists(newAllPlaylists);
-        setPlaylists(newAllPlaylists);
-        
-        toast({
-          title: "Uğurlu!",
-          description: `${uniqueNewPlaylists.length} yeni playlist yükləndi!`,
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Xəta", description: "Import xətası." });
-    } finally {
-      setIsImporting(false);
-    }
-  };
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || t("guest");
+  const allTracks = mockTracks;
 
-  const handleDeletePlaylist = (playlistId: string) => {
-    try {
-      const updated = playlists.filter((p) => p.id !== playlistId);
-      storage.savePlaylists(updated);
-      setPlaylists(updated);
-      toast({ title: t("playlistDeleted"), description: t("playlistDeleted") });
-    } catch (error) {
-      toast({ title: t("error"), variant: "destructive" });
-    }
+  const likedSongsPlaylist: Playlist = {
+    id: "liked-songs",
+    name: t("likedSongs"),
+    description: t("likedSongs"),
+    coverUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    tracks: likedTracks || [],
+    createdAt: new Date()
   };
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">{t("collections")}</h1>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button 
-            variant="secondary" 
-            onClick={handleImportSpotify} 
-            disabled={isImporting}
-            className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white"
-          >
-            {isImporting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Import className="mr-2 h-4 w-4" />}
-            {isImporting ? "Yüklənir..." : "Spotify İdxal"}
-          </Button>
-          <Button onClick={() => navigate("/make-playlist")} className="flex-1 sm:flex-none">
-            <Plus className="mr-2 h-4 w-4" />
-            {t("createPlaylist")}
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-8 pb-8 animate-in fade-in duration-500">
+      
+      {/* Salamlama */}
+      <section className="py-8 px-2">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent pb-2 leading-tight">
+          {t("welcomeUser")}, {isGuest ? t("guest") : displayName} 👋
+        </h1>
+        <p className="text-muted-foreground mt-3 text-lg">
+          {t("enterMusicWorld")}
+        </p>
+      </section>
 
-      {playlists.length > 0 ? (
-        /* DÜZƏLİŞ EDİLƏN HİSSƏ: 
-           grid-cols-3 (mobildə 3 sütun), 
-           sm:grid-cols-4 (planşetdə 4), 
-           md:grid-cols-5 (kompüterdə 5) 
-           gap-2 (mobildə az ara), sm:gap-4 (böyük ekranda çox ara)
-        */
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-4">
-          {playlists.map((playlist) => (
-            <Card 
-              key={playlist.id} 
-              className="group cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden border-border/50"
-              onClick={() => navigate(`/playlist/${playlist.id}`)}
+      {/* Liked Songs - Bu tək olduğu üçün Carousel-də qala bilər və ya bunu da grid edə bilərik. 
+          Hələlik standart saxladım. */}
+      {!isGuest && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold">{t("likedSongs")}</h2>
+          </div>
+          <PlaylistCarousel
+            playlists={[likedSongsPlaylist]}
+            showGridOnDesktop={true}
+            maxDesktopItems={1}
+            onPlaylistClick={() => navigate("/liked")}
+          />
+        </section>
+      )}
+
+      {/* My Playlists - BURADA DÜZƏLİŞ EDİLDİ */}
+      {playlists.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold">{t("myPlaylists")}</h2>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/collections")}
+              className="hidden sm:flex"
             >
-              <CardHeader className="p-0">
-                <div className="aspect-square w-full relative overflow-hidden">
-                  <img 
-                    src={playlist.coverUrl || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60"} 
-                    alt={playlist.name}
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                  />
-                  
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-1 sm:gap-2 
-                                  opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
-                    {/* Düymələr mobildə (h-8 w-8), kompüterdə (h-10 w-10) olacaq */}
-                    <Button
-                      size="icon"
-                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/playlist/${playlist.id}`);
-                      }}
-                    >
-                      <Play className="h-4 w-4 sm:h-5 sm:w-5 ml-0.5" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePlaylist(playlist.id);
-                      }}
-                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full shadow-lg"
-                    >
-                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </Button>
+              {t("collections")}
+            </Button>
+          </div>
+
+          {/* Grid Sistemi: Mobildə 3 sütun (grid-cols-3), Desktopda daha çox */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-4">
+            {playlists.slice(0, 6).map((playlist) => (
+              <Card 
+                key={playlist.id} 
+                className="group cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden border-border/50"
+                onClick={() => navigate(`/playlist/${playlist.id}`)}
+              >
+                <CardHeader className="p-0">
+                  <div className="aspect-square w-full relative overflow-hidden">
+                    <img 
+                      src={playlist.coverUrl || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60"} 
+                      alt={playlist.name}
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    />
+                    
+                    {/* Düymə ölçüləri mobildə kiçildildi */}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
+                      <Button
+                        size="icon"
+                        className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/playlist/${playlist.id}`);
+                        }}
+                      >
+                        <Play className="h-4 w-4 sm:h-5 sm:w-5 ml-0.5" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              {/* İçəridəki padding mobildə p-2, böyükdə p-4 */}
-              <CardContent className="p-2 sm:p-4">
-                {/* Başlıq mobildə text-xs, böyükdə text-base */}
-                <CardTitle className="text-xs sm:text-base truncate mb-1 font-medium">{playlist.name}</CardTitle>
-                <CardDescription className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                  {playlist.tracks?.length || 0} {playlist.tracks?.length === 1 ? t("track") : t("tracks")}
-                </CardDescription>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="p-2 sm:p-4">
+                  <CardTitle className="text-xs sm:text-base truncate mb-1 font-medium">
+                    {playlist.name}
+                  </CardTitle>
+                  <CardDescription className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                    {playlist.tracks?.length || 0} {playlist.tracks?.length === 1 ? t("track") : t("tracks")}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* "Hamısına bax" düyməsi mobildə */}
+          {playlists.length > 6 && (
+            <div className="mt-4 text-center sm:hidden">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/collections")}>
+                {t("collections")} ({playlists.length})
+              </Button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Trending Songs */}
+      <section>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4">{t("trending")}</h2>
+        <div className="space-y-1">
+          {allTracks.map((track, index) => (
+            <TrackItem key={track.id} track={track} index={index} />
           ))}
         </div>
-      ) : (
-        <div className="text-center py-20">
-          <p className="text-muted-foreground mb-4">{t("emptyPlaylist")}</p>
-          <Button onClick={() => navigate("/make-playlist")}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("createPlaylist")}
-          </Button>
-        </div>
-      )}
+      </section>
     </div>
   );
 }
