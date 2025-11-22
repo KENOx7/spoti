@@ -96,7 +96,13 @@ export default function CollectionsView() {
       </div>
 
       {playlists.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        /* DÜZƏLİŞ EDİLƏN HİSSƏ: 
+           grid-cols-3 (mobildə 3 sütun), 
+           sm:grid-cols-4 (planşetdə 4), 
+           md:grid-cols-5 (kompüterdə 5) 
+           gap-2 (mobildə az ara), sm:gap-4 (böyük ekranda çox ara)
+        */
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-4">
           {playlists.map((playlist) => (
             <Card 
               key={playlist.id} 
@@ -111,18 +117,18 @@ export default function CollectionsView() {
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                   
-                  {/* MOBİL DÜZƏLİŞ: opacity-100 (mobildə görünür), sm:opacity-0 (PC-də gizli) */}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-1 sm:gap-2 
                                   opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
+                    {/* Düymələr mobildə (h-8 w-8), kompüterdə (h-10 w-10) olacaq */}
                     <Button
                       size="icon"
-                      className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/playlist/${playlist.id}`);
                       }}
                     >
-                      <Play className="h-5 w-5 ml-0.5" />
+                      <Play className="h-4 w-4 sm:h-5 sm:w-5 ml-0.5" />
                     </Button>
                     <Button
                       variant="destructive"
@@ -131,16 +137,18 @@ export default function CollectionsView() {
                         e.stopPropagation();
                         handleDeletePlaylist(playlist.id);
                       }}
-                      className="h-10 w-10 rounded-full shadow-lg"
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full shadow-lg"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-4">
-                <CardTitle className="text-base truncate mb-1">{playlist.name}</CardTitle>
-                <CardDescription className="text-xs">
+              {/* İçəridəki padding mobildə p-2, böyükdə p-4 */}
+              <CardContent className="p-2 sm:p-4">
+                {/* Başlıq mobildə text-xs, böyükdə text-base */}
+                <CardTitle className="text-xs sm:text-base truncate mb-1 font-medium">{playlist.name}</CardTitle>
+                <CardDescription className="text-[10px] sm:text-xs text-muted-foreground truncate">
                   {playlist.tracks?.length || 0} {playlist.tracks?.length === 1 ? t("track") : t("tracks")}
                 </CardDescription>
               </CardContent>
