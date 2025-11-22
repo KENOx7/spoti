@@ -1,7 +1,7 @@
 import { usePlayer } from "@/context/player-context";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Repeat1, Shuffle, Heart } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, Repeat1, Shuffle, Heart, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ export function Player() {
     volume,
     currentTime,
     duration,
+    isLoading, // Yüklənmə statusunu alırıq
     repeatMode,
     isShuffled,
     togglePlayPause,
@@ -34,12 +35,7 @@ export function Player() {
     }
   }, [currentTime, isSeeking]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
+  // Əgər mahnı seçilməyibsə, player görünmür
   if (!currentTrack) return null;
 
   const isLiked = likedTracks.some(t => t.id === currentTrack.id);
@@ -47,15 +43,14 @@ export function Player() {
   return (
     <div className={cn(
       "fixed left-0 right-0 z-40 border-t border-primary/10 backdrop-blur-xl transition-all duration-300",
-      // Dark/Light mövzuya uyğun arxa fon (şəffaf şüşə effekti)
       "bg-background/80 supports-[backdrop-filter]:bg-background/60",
-      // Mobildə naviqasiya panelinin üzərində (bottom-16 = 64px), Desktopda ən aşağıda (bottom-0)
       "bottom-[58px] md:bottom-0", 
-      "md:pl-64" // Sidebar-ı nəzərə alaraq
+      "md:pl-64"
     )}>
       <div className="flex flex-col p-2 md:p-4 max-w-screen-2xl mx-auto">
-        {/* Progress Bar */}
-        <div className="w-full px-2 mb-2 md:mb-0 order-1 md:absolute md:top-0 md:left-0 md:right-0 md:px-0 md:-mt-1.5">
+        
+        {/* Slider */}
+        <div className="w-full px-2 mb-0 order-1 md:absolute md:top-0 md:left-0 md:right-0 md:px-0 md:-mt-1.5">
            <Slider
             value={[isSeeking ? localTime : currentTime]}
             max={duration || 100}
@@ -79,8 +74,14 @@ export function Player() {
               <img
                 src={currentTrack.coverUrl}
                 alt={currentTrack.title}
-                className="h-full w-full object-cover"
+                className={cn("h-full w-full object-cover", isLoading && "opacity-50")}
               />
+              {/* Şəkil üzərində kiçik spinner */}
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="truncate font-medium text-sm md:text-base text-foreground">
@@ -125,8 +126,11 @@ export function Player() {
                 size="icon"
                 onClick={togglePlayPause}
                 className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:scale-105 transition-transform"
+                disabled={isLoading} // Yüklənərkən düyməni deaktiv edirik
               >
-                {isPlaying ? (
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 md:h-6 md:w-6 animate-spin" />
+                ) : isPlaying ? (
                   <Pause className="h-5 w-5 md:h-6 md:w-6" />
                 ) : (
                   <Play className="h-5 w-5 md:h-6 md:w-6 ml-0.5" />
