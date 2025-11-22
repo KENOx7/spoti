@@ -1,110 +1,109 @@
-// src/components/MobileNav.tsx
-import { Menu, Music } from "lucide-react";
+import { Menu, Music, Home, Search, Library, Settings } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLanguage } from "@/context/language-context";
+import logo from "@/logo.png";
 
 export function MobileNav() {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const location = useLocation();
 
-  const navLinks = [
-    { href: "/", label: t("home") },
+  // Aşağı Menyu Elementləri
+  const bottomNavItems = [
+    { href: "/", icon: Home, label: t("home") },
+    { href: "/ask-ai", icon: Search, label: t("askAI") },
+    { href: "/collections", icon: Library, label: t("collections") },
+  ];
+
+  // Yan Menyu (Drawer) Linkləri
+  const drawerLinks = [
     { href: "/charts", label: t("charts") },
     { href: "/liked", label: t("likedSongs") },
-    { href: "/collections", label: t("collections") },
     { href: "/recently-added", label: t("recentlyAdded") },
-    { href: "/ask-ai", label: t("askAI") },
     { href: "/make-playlist", label: t("makePlaylist") },
-  ];
-
-  const settingsLinks = [
-    { href: "/settings", label: t("settings") },
     { href: "/account", label: t("account") },
+    { href: "/settings", label: t("settings") },
   ];
 
-  // Close menu when route changes
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
 
   return (
-    // === DÜZƏLİŞ: 'md:hidden' klassı PC-də gizlədir ===
-    <header className="md:hidden sticky top-0 z-40 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-2 sm:p-3 md:p-4">
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10">
-            <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="sr-only">Naviqasiya menyusunu aç</span>
-          </Button>
-        </SheetTrigger>
+    <>
+      {/* Aşağı Sabit Menyu (Blur effekti ilə) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe">
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-xl border-t border-primary/10" />
         
-        {/* === DÜZƏLİŞ: 'text-foreground' "X" ikonunun rəngini düzəldir === */}
-        <SheetContent side="left" className="flex flex-col w-full max-w-sm text-foreground">
-          {/* Logo və ya başlıq */}
-          <div className="flex items-center gap-2 border-b pb-3 sm:pb-4">
-            <Music className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-            <span className="text-lg sm:text-xl font-bold">{t("appName")}</span>
-          </div>
+        {/* DÜZƏLİŞ: py-3 əvəzinə py-1 istifadə edildi */}
+        <div className="relative flex items-center justify-around px-2 py-[8px]">
+          {bottomNavItems.map((item) => {
+             const Icon = item.icon;
+             const isActive = location.pathname === item.href;
+             return (
+               <NavLink
+                 key={item.href}
+                 to={item.href}
+                 className={cn(
+                   "flex flex-col items-center gap-1 transition-all duration-300",
+                   isActive ? "text-primary scale-110" : "text-muted-foreground hover:text-primary/70"
+                 )}
+               >
+                 <Icon className={cn("h-6 w-6", isActive && "drop-shadow-[0_0_8px_rgba(167,63,255,0.6)]")} />
+                 <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
+               </NavLink>
+             );
+          })}
 
-          {/* Əsas Naviqasiya */}
-          <nav className="flex-1 flex flex-col gap-1 sm:gap-2 mt-3 sm:mt-4">
-            {navLinks.map((link) => (
-              <MobileNavLink key={link.href} href={link.href} onNavigate={() => setOpen(false)}>
-                {link.label}
-              </MobileNavLink>
-            ))}
-          </nav>
-          
-          {/* Alt Naviqasiya (Settings, Account) */}
-          <nav className="flex flex-col gap-1 sm:gap-2 border-t pt-3 sm:pt-4">
-            {settingsLinks.map((link) => (
-              <MobileNavLink key={link.href} href={link.href} onNavigate={() => setOpen(false)}>
-                {link.label}
-              </MobileNavLink>
-            ))}
-            <div className="pt-2 px-2">
-              <LanguageSwitcher />
-            </div>
-          </nav>
+          {/* Daha Çox Menyusu (Drawer Trigger) */}
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <button className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                <div className="relative">
+                   <Menu className="h-6 w-6" />
+                </div>
+                <span className="text-[10px] font-medium tracking-wide">Menu</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85%] border-l border-primary/10 bg-background/95 backdrop-blur-2xl">
+               
+               {/* Drawer Başlığı */}
+               <div className="flex items-center gap-3 mb-8 mt-4 pb-6 border-b border-primary/10">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-primary/20 shadow-[0_0_15px_rgba(167,63,255,0.2)]">
+                    <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-primary">
+                        {t("appName")}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">Infinite Music</p>
+                  </div>
+               </div>
 
-        </SheetContent>
-      </Sheet>
-    </header>
-  );
-}
-
-// Linklər üçün köməkçi komponent
-function MobileNavLink({ 
-  href, 
-  children, 
-  onNavigate 
-}: { 
-  href: string; 
-  children: React.ReactNode;
-  onNavigate?: () => void;
-}) {
-  return (
-    <NavLink
-      to={href}
-      end={href === "/"} // Anasəhifə linkinin həmişə aktiv qalmaması üçün
-      onClick={onNavigate}
-      className={({ isActive }) =>
-        cn(
-          "text-base sm:text-lg p-2 sm:p-3 rounded-md font-medium transition-colors hover:bg-muted",
-          isActive
-            ? "bg-primary text-primary-foreground"
-            // === DÜZƏLİŞ: Aktiv olmayan linklərin "dark mode"-da görünməsi üçün ===
-            : "text-foreground/70" 
-        )
-      }
-    >
-      {children}
-    </NavLink>
+               {/* Drawer Linkləri */}
+               <nav className="flex flex-col gap-2">
+                  {drawerLinks.map((link) => (
+                    <NavLink
+                      key={link.href}
+                      to={link.href}
+                      className={({ isActive }) => cn(
+                        "p-4 rounded-xl text-lg font-light transition-all duration-300 border border-transparent",
+                        isActive 
+                          ? "bg-primary/10 text-primary border-primary/10 shadow-[0_0_10px_rgba(167,63,255,0.1)]" 
+                          : "hover:bg-accent hover:pl-6"
+                      )}
+                    >
+                      {link.label}
+                    </NavLink>
+                  ))}
+               </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </>
   );
 }

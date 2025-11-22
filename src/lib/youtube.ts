@@ -4,16 +4,15 @@ import { Track } from "@/types";
 function cleanQuery(text: string): string {
   return text
     .replace(/feat\.|ft\.|official|video|audio|lyrics|remastered|remaster|mix/gi, "")
-    .replace(/\(.*?\)/g, "") // Mötərizələri silir (bəzən vacib ola bilər, amma iTunes üçün təmiz ad yaxşıdır)
+    .replace(/\(.*?\)/g, "")
     .replace(/\[.*?\]/g, "")
-    .replace(/\s+/g, " ")    // Artıq boşluqları silir
+    .replace(/\s+/g, " ")
     .trim();
 }
 
-// === ITUNES AXTARIŞI (Ümumi funksiya) ===
+// === ITUNES AXTARIŞI ===
 async function searchiTunes(query: string): Promise<string | null> {
   try {
-    // entity=song və limit=1 istifadə edirik
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`;
     const res = await fetch(url);
     
@@ -25,43 +24,36 @@ async function searchiTunes(query: string): Promise<string | null> {
     const data = await res.json();
     
     if (data.resultCount === 0 || !data.results?.[0]?.previewUrl) {
-      console.warn(`⚠️ iTunes-da tapılmadı: "${query}"`);
       return null;
     }
 
-    // iTunes 30 saniyəlik preview qaytarır (.m4a formatında)
     console.log(`✅ iTunes Tapdı: "${query}" -> ${data.results[0].trackName}`);
     return data.results[0].previewUrl;
   } catch (e) {
-    console.error("iTunes şəbəkə xətası:", e);
+    console.error("iTunes connection error:", e);
     return null;
   }
 }
 
 // === ƏSAS FUNKSİYA ===
 export async function getYoutubeAudioUrl(track: Track): Promise<string | null> {
-  // 1. Cəhd: Tam dəqiqliklə axtar (Artist + Mahnı)
+  // 1. Artist - Mahnı (Təmiz)
   const artistClean = cleanQuery(track.artist);
   const titleClean = cleanQuery(track.title);
   
-  const fullQuery = `${artistClean} - ${titleClean}`;
-  let url = await searchiTunes(fullQuery);
+  let url = await searchiTunes(`${artistClean} - ${titleClean}`);
 
-  // 2. Cəhd (Fallback): Əgər tapılmadısa, yalnız mahnı adı ilə axtar
+  // 2. Mahnı adı (Təmiz) - Fallback
   if (!url) {
-    console.log(`🔄 Təkrar axtarış edilir (Yalnız ad): "${titleClean}"`);
+    console.log(`🔄 Yenidən yoxlanılır (Yalnız ad): "${titleClean}"`);
     url = await searchiTunes(titleClean);
   }
 
-  // 3. Cəhd (Fallback): Əgər yenə tapılmadısa, orijinal adla axtar (təmizləmədən)
+  // 3. Original (Raw) - Fallback
   if (!url) {
     const rawQuery = `${track.artist} ${track.title}`;
-    console.log(`🔄 Son şans axtarışı: "${rawQuery}"`);
+    console.log(`🔄 Son yoxlama: "${rawQuery}"`);
     url = await searchiTunes(rawQuery);
-  }
-
-  if (!url) {
-    console.error(`❌ HEÇ BİR NƏTİCƏ TAPILMADI: ${track.artist} - ${track.title}`);
   }
 
   return url;

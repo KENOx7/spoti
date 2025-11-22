@@ -28,8 +28,8 @@ export default function CollectionsView() {
     if (!accessToken) {
       toast({
         variant: "destructive",
-        title: "Xəta",
-        description: "Spotify bağlantısı yoxdur. Yenidən giriş edin.",
+        title: t("error"),
+        description: t("noSpotifyConnection"),
       });
       return;
     }
@@ -39,7 +39,7 @@ export default function CollectionsView() {
       const spotifyPlaylists = await fetchSpotifyPlaylists(accessToken);
       
       if (spotifyPlaylists.length === 0) {
-        toast({ title: "Məlumat", description: "Spotify-da playlist tapılmadı." });
+        toast({ title: t("error"), description: t("noPlaylistsFound") });
       } else {
         const currentPlaylists = storage.getPlaylists();
         const uniqueNewPlaylists = spotifyPlaylists.filter(
@@ -51,13 +51,13 @@ export default function CollectionsView() {
         setPlaylists(newAllPlaylists);
         
         toast({
-          title: "Uğurlu!",
-          description: `${uniqueNewPlaylists.length} yeni playlist yükləndi!`,
+          title: t("success"),
+          description: `${uniqueNewPlaylists.length} ${t("importSuccess")}`,
         });
       }
     } catch (error) {
       console.error(error);
-      toast({ variant: "destructive", title: "Xəta", description: "Import xətası." });
+      toast({ variant: "destructive", title: t("error"), description: t("importError") });
     } finally {
       setIsImporting(false);
     }
@@ -86,7 +86,7 @@ export default function CollectionsView() {
             className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white"
           >
             {isImporting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Import className="mr-2 h-4 w-4" />}
-            {isImporting ? "Yüklənir..." : "Spotify İdxal"}
+            {isImporting ? t("importing") : t("spotifyImport")}
           </Button>
           <Button onClick={() => navigate("/make-playlist")} className="flex-1 sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
@@ -96,12 +96,7 @@ export default function CollectionsView() {
       </div>
 
       {playlists.length > 0 ? (
-        /* DÜZƏLİŞ EDİLƏN HİSSƏ: 
-           grid-cols-3 (mobildə 3 sütun), 
-           sm:grid-cols-4 (planşetdə 4), 
-           md:grid-cols-5 (kompüterdə 5) 
-           gap-2 (mobildə az ara), sm:gap-4 (böyük ekranda çox ara)
-        */
+        // Grid: Mobildə 3, Planşetdə 4, Desktopda 5 sütun
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-4">
           {playlists.map((playlist) => (
             <Card 
@@ -119,7 +114,6 @@ export default function CollectionsView() {
                   
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-1 sm:gap-2 
                                   opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
-                    {/* Düymələr mobildə (h-8 w-8), kompüterdə (h-10 w-10) olacaq */}
                     <Button
                       size="icon"
                       className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
@@ -144,9 +138,7 @@ export default function CollectionsView() {
                   </div>
                 </div>
               </CardHeader>
-              {/* İçəridəki padding mobildə p-2, böyükdə p-4 */}
               <CardContent className="p-2 sm:p-4">
-                {/* Başlıq mobildə text-xs, böyükdə text-base */}
                 <CardTitle className="text-xs sm:text-base truncate mb-1 font-medium">{playlist.name}</CardTitle>
                 <CardDescription className="text-[10px] sm:text-xs text-muted-foreground truncate">
                   {playlist.tracks?.length || 0} {playlist.tracks?.length === 1 ? t("track") : t("tracks")}

@@ -5,181 +5,99 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Music, Chrome, User, ArrowRight, Globe } from "lucide-react";
+import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-context";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 // Şəkil
 const backgroundImage = new URL("./Raper album cover.jpg", import.meta.url).href;
 
 export default function LoginView() {
+  // isGuest-i yoxlamadan çıxardıq ki, qonaqlar login səhifəsini görə bilsin
   const { isAuthenticated, continueAsGuest } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Əgər giriş edilibsə, yönləndir
+  // Yalnız HƏQİQİ HESABLA giriş edilibsə Ana Səhifəyə at
+  // Qonaqdırsa, bu səhifədə qalıb hesab aça bilsin
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
-// --- SOCIAL LOGIN ---
-  const handleSocialLogin = async (provider: "google" | "spotify") => {
-    try {
-      setIsLoading(true);
-      
-      // Spotify üçün xüsusi icazələr (scopes)
-      const scopes = provider === 'spotify' 
-        ? 'user-read-email playlist-read-private playlist-read-collaborative user-library-read'
-        : undefined;
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: provider,
-        options: {
-          redirectTo: window.location.origin,
-          scopes: scopes, // İcazələri bura əlavə edirik
-        },
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      console.error("Login Error:", error);
-      toast({
-        variant: "destructive",
-        title: "Xəta",
-        description: error.message,
-      });
-      setIsLoading(false);
-    }
-  };
-
-  // EMAIL LOGIN (Bura baxın)
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
-    
     setIsLoading(true);
+    
     try {
-      // 1. Supabase-dən giriş sorğusu
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
-
-      // 2. Uğurlu olsa, AuthContext avtomatik olaraq istifadəçini tutacaq 
-      // və useEffect sizi "/" səhifəsinə atacaq.
-      toast({ title: "Uğurlu!", description: "Xoş gəldiniz." });
-
+      // Uğurlu olarsa useEffect avtomatik yönləndirəcək
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Giriş Xətası",
-        description: "Email və ya şifrə yanlışdır.",
+        title: "Xəta",
+        description: error.message || "Giriş zamanı xəta baş verdi",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGuestLogin = () => {
-    continueAsGuest();
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    await continueAsGuest();
     navigate("/");
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center relative overflow-hidden">
-      {/* Dil Dəyişimi */}
-      <div className="absolute top-4 right-4 z-50">
-        <Select value={language} onValueChange={(val: "en" | "az") => setLanguage(val)}>
-          <SelectTrigger className="w-[140px] bg-black/40 backdrop-blur-md border-white/20 text-white hover:bg-black/60">
-             <Globe className="w-4 h-4 mr-2" />
-             <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="en">English</SelectItem>
-            <SelectItem value="az">Azərbaycanca</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Arxa Fon */}
-      <div
-        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url("${backgroundImage}")` }}
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      
+      {/* --- ARXA FON ŞƏKLİ --- */}
+      <div 
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `url("${backgroundImage}")`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
       >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] bg-gradient-to-b from-background/80 via-transparent to-background/90" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md px-6 animate-in fade-in zoom-in duration-300">
-        <div className="bg-card/90 backdrop-blur-md border border-border/50 rounded-2xl shadow-2xl p-8">
-          
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">
-              {t("welcomeBack")}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {t("enterMusicWorld")}
-            </p>
-          </div>
+      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none z-0" />
+      
+      <div className="w-full max-w-md p-8 relative z-10 animate-in fade-in zoom-in duration-500">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-white mb-2 tracking-tight drop-shadow-lg">
+            {t("welcomeBack")}
+          </h1>
+          <p className="text-muted-foreground text-gray-300">
+            {t("enterMusicWorld")}
+          </p>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <Button 
-              variant="outline" 
-              type="button"
-              onClick={() => handleSocialLogin("google")}
-              className="h-12 hover:bg-white/10 transition-colors"
-              disabled={isLoading}
-            >
-              <Chrome className="mr-2 h-5 w-5 text-red-500" />
-              Google
-            </Button>
-            <Button 
-              variant="outline"
-              type="button"
-              onClick={() => handleSocialLogin("spotify")}
-              className="h-12 hover:bg-green-500/10 border-green-900/50 text-green-500 transition-colors"
-              disabled={isLoading}
-            >
-              <Music className="mr-2 h-5 w-5" />
-              Spotify
-            </Button>
-          </div>
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border/50" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background/50 px-2 text-muted-foreground rounded backdrop-blur-sm">
-                {t("orEmail")}
-              </span>
-            </div>
-          </div>
-
-          <form onSubmit={handleEmailLogin} className="space-y-4">
+        <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">{t("email")}</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="ad@example.com"
-                  className="pl-10 h-12 bg-background/50 border-border/50 focus:ring-primary/50"
+              <Label htmlFor="email" className="text-gray-200">{t("email")}</Label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="name@example.com"
+                  className="pl-10 h-12 bg-white/5 border-white/10 focus:ring-primary/50 text-white placeholder:text-gray-500"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -189,14 +107,13 @@ export default function LoginView() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">{t("password")}</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="pl-10 h-12 bg-background/50 border-border/50 focus:ring-primary/50"
+              <Label htmlFor="password"className="text-gray-200">{t("password")}</Label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  className="pl-10 h-12 bg-white/5 border-white/10 focus:ring-primary/50 text-white"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -205,19 +122,28 @@ export default function LoginView() {
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full h-12 text-base font-medium mt-2 bg-primary hover:bg-primary/90"
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-medium mt-2 bg-primary hover:bg-primary/90 shadow-[0_0_20px_rgba(124,58,237,0.3)]"
               disabled={isLoading}
             >
               {isLoading ? "..." : t("signIn")}
             </Button>
           </form>
 
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-transparent px-2 text-muted-foreground bg-black/50 backdrop-blur-md rounded">Or</span>
+            </div>
+          </div>
+
           <Button
             type="button"
-            variant="ghost"
-            className="w-full mt-3 text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent hover:border-border/30"
+            variant="outline"
+            className="w-full h-11 bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-primary hover:border-primary/50 transition-all"
             onClick={handleGuestLogin}
             disabled={isLoading}
           >
@@ -225,16 +151,15 @@ export default function LoginView() {
             {t("guestContinue")}
           </Button>
 
-          <div className="mt-6 pt-4 border-t border-border/30 text-center text-sm">
+          <div className="mt-6 pt-4 border-t border-white/10 text-center text-sm text-gray-400">
             {t("noAccount")}{" "}
             <Link 
               to="/signup" 
-              className="text-primary hover:text-primary/80 font-semibold transition-all inline-flex items-center ml-1"
+              className="text-primary hover:text-primary/80 font-semibold transition-all inline-flex items-center ml-1 hover:underline"
             >
               {t("signUp")} <ArrowRight className="ml-1 h-3 w-3" />
             </Link>
           </div>
-
         </div>
       </div>
     </div>
