@@ -10,7 +10,6 @@ interface Translations {
 
 const translations: Translations = {
   en: {
-    // Navigation
     home: "Home",
     charts: "Charts",
     likedSongs: "Liked Songs",
@@ -22,7 +21,6 @@ const translations: Translations = {
     askAI: "Ask AI",
     appName: "Endless Flow",
     
-    // Auth & Profile
     welcomeBack: "Welcome Back",
     enterMusicWorld: "Immerse yourself in the Endless Flow",
     continueWithGoogle: "Continue with Google",
@@ -48,7 +46,6 @@ const translations: Translations = {
     logoutDescription: "End session?",
     logout: "Logout",
     
-    // --- YENİ ƏLAVƏLƏR ---
     guestAccount: "Guest Account",
     guestMessage: "You are browsing as a guest. Login to save your library permanently.",
     loginOrSignup: "Login or Sign Up",
@@ -62,7 +59,6 @@ const translations: Translations = {
     info: "Information",
     socialLoginMessage: "You are logged in with {provider}. You cannot change your password here.",
 
-    // Player & Content
     trending: "Trending Flows",
     myPlaylists: "My Collections",
     playAll: "Play All",
@@ -77,7 +73,6 @@ const translations: Translations = {
     addToPlaylist: "Add to Playlist",
     error: "An error occurred",
     
-    // AI
     aiAssistant: "Endless AI",
     aiDescription: "Describe your vibe, let the music flow...",
     askButton: "Generate Flow",
@@ -90,7 +85,6 @@ const translations: Translations = {
     searchingItunes: "Searching the stream...",
     noTracksFound: "No tracks found.",
 
-    // Spotify Import
     spotifyImport: "Import Spotify",
     importing: "Importing...",
     success: "Success!",
@@ -102,7 +96,6 @@ const translations: Translations = {
     play: "Play"
   },
   az: {
-    // Naviqasiya
     home: "Ana Səhifə",
     charts: "Hitlər",
     likedSongs: "Bəyənilənlər",
@@ -114,7 +107,6 @@ const translations: Translations = {
     askAI: "AI-dan Soruş",
     appName: "Endless Flow",
     
-    // Giriş & Profil
     welcomeBack: "Xoş Gəldiniz",
     enterMusicWorld: "Endless Flow dünyasına dalın",
     continueWithGoogle: "Google ilə davam et",
@@ -140,7 +132,6 @@ const translations: Translations = {
     logoutDescription: "Çıxmaq istədiyinizə əminsiniz?",
     logout: "Çıxış",
 
-    // --- YENİ ƏLAVƏLƏR ---
     guestAccount: "Qonaq Hesabı",
     guestMessage: "Siz qonaq kimi daxil olmusunuz. Məlumatları daimi yadda saxlamaq üçün hesab yaradın.",
     loginOrSignup: "Giriş və ya Qeydiyyat",
@@ -154,7 +145,6 @@ const translations: Translations = {
     info: "Məlumat",
     socialLoginMessage: "Siz {provider} ilə daxil olmusunuz. Şifrəni buradan dəyişə bilməzsiniz.",
     
-    // Player & Məzmun
     trending: "Trend Axını",
     myPlaylists: "Kolleksiyalarım",
     playAll: "Hamısını Oynat",
@@ -169,7 +159,6 @@ const translations: Translations = {
     addToPlaylist: "Playlistə əlavə et",
     error: "Xəta baş verdi",
     
-    // AI
     aiAssistant: "Endless AI",
     aiDescription: "Əhvalını yaz, musiqi axsın...",
     askButton: "Axını Yarat",
@@ -182,7 +171,6 @@ const translations: Translations = {
     searchingItunes: "Mahnılar axtarılır...",
     noTracksFound: "Mahnı tapılmadı.",
 
-    // Spotify Import
     spotifyImport: "Spotify İdxal",
     importing: "Yüklənir...",
     success: "Uğurlu!",
