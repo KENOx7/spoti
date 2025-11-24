@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Music, User, ArrowRight, Chrome } from "lucide-react"; // Chrome ikonu əlavə edildi
+import { Mail, Lock, Music, Chrome, User, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-context";
 
@@ -51,7 +51,8 @@ export default function LoginView() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "spotify",
         options: {
-          redirectTo: window.location.origin, 
+          // ✅ YENİLƏNDİ: Artıq callback səhifəsinə yönləndiririk
+          redirectTo: `${window.location.origin}/auth/callback`,
           scopes: "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read",
         },
       });
@@ -66,14 +67,14 @@ export default function LoginView() {
     }
   };
 
-  // ✅ YENİ: Google Login Funksiyası
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          // ✅ YENİLƏNDİ: Google üçün də callback əlavə etdik
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -98,7 +99,6 @@ export default function LoginView() {
 
   return (
     <div className="min-h-screen w-full flex bg-black text-white overflow-hidden relative">
-      {/* Arxa fon şəkli */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center opacity-40 blur-sm scale-105"
         style={{ backgroundImage: `url("${backgroundImage}")` }}
@@ -117,7 +117,6 @@ export default function LoginView() {
           <p className="text-gray-400 mt-2 text-sm">{t("loginDescription")}</p>
         </div>
 
-        {/* --- SPOTIFY BUTTON --- */}
         <Button 
           variant="outline" 
           className="w-full h-12 bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold border-none mb-3 transition-transform hover:scale-[1.02]"
@@ -130,7 +129,6 @@ export default function LoginView() {
           Continue with Spotify
         </Button>
 
-        {/* --- GOOGLE BUTTON (YENİ) --- */}
         <Button 
           variant="outline" 
           className="w-full h-12 bg-white hover:bg-gray-100 text-black font-bold border-none mb-4 transition-transform hover:scale-[1.02]"
