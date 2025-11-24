@@ -51,7 +51,7 @@ export default function LoginView() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "spotify",
         options: {
-          // ✅ URL-in sonuna /auth/callback əlavə olundu
+          // ✅ DÜZƏLİŞ: Callback səhifəsinə yönləndiririk
           redirectTo: `${window.location.origin}/auth/callback`,
           scopes: "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read",
         },
@@ -73,7 +73,7 @@ export default function LoginView() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // ✅ URL-in sonuna /auth/callback əlavə olundu
+          // ✅ DÜZƏLİŞ: Google üçün də callback
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
@@ -156,6 +156,7 @@ export default function LoginView() {
                 <Input 
                   id="email" 
                   type="email" 
+                  autoComplete="email" 
                   className="pl-10 h-12 bg-white/5 border-white/10 focus:ring-primary/50 text-white placeholder:text-gray-500"
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
@@ -173,6 +174,7 @@ export default function LoginView() {
                 <Input 
                   id="password" 
                   type="password" 
+                  autoComplete="current-password" 
                   className="pl-10 h-12 bg-white/5 border-white/10 focus:ring-primary/50 text-white placeholder:text-gray-500"
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
