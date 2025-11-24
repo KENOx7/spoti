@@ -25,7 +25,7 @@ import PlaylistDetailView from "./pages/PlaylistDetailView";
 import RecentlyAddedView from "./pages/RecentlyAddedView";
 import LoginView from "./pages/LoginView";
 import SignupView from "./pages/SignupView";
-import AuthCallback from "./pages/AuthCallback"; // 🟢 1. İMPORT EDİLDİ
+import AuthCallback from "./pages/AuthCallback"; // 🟢 IMPORT
 
 const queryClient = new QueryClient();
 
@@ -63,7 +63,7 @@ const App = () => (
                 <Route path="/login" element={<LoginView />} />
                 <Route path="/signup" element={<SignupView />} />
                 
-                {/* 🟢 2. CALLBACK MARŞRUTU ƏLAVƏ EDİLDİ */}
+                {/* 🟢 Callback Route (Public olmalıdır) */}
                 <Route path="/auth/callback" element={<AuthCallback />} />
 
                 {/* PROTECTED ROUTES */}
