@@ -9,7 +9,7 @@ import { Mail, Lock, Music, User, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-context";
 
-// Şəkil
+// Sizin yüklədiyiniz arxa fon şəkli
 const backgroundImage = new URL("./Raper album cover.jpg", import.meta.url).href;
 
 export default function LoginView() {
@@ -45,13 +45,14 @@ export default function LoginView() {
     }
   };
 
-  // ✅ DÜZƏLDİLMİŞ HİSSƏ: handleSpotifyLogin
+  // ✅ DÜZƏLİŞ: Spotify login artıq Callback səhifəsinə yönlənir
   const handleSpotifyLogin = async () => {
     try {
       setIsLoading(true);
       await supabase.auth.signInWithOAuth({
         provider: "spotify",
         options: {
+          // Vacib: URL-in sonuna /auth/callback əlavə etdik
           redirectTo: `${window.location.origin}/auth/callback`,
           scopes:
             "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read",
@@ -72,6 +73,7 @@ export default function LoginView() {
     navigate("/");
   };
 
+  // --- SİZİN DİZAYN ---
   return (
     <div className="min-h-screen w-full flex bg-black text-white overflow-hidden relative">
       {/* Arxa fon şəkli */}
@@ -93,7 +95,7 @@ export default function LoginView() {
           <p className="text-gray-400 mt-2 text-sm">{t("loginDescription")}</p>
         </div>
 
-        {/* --- SPOTIFY BUTTON --- */}
+        {/* --- SPOTIFY BUTTON (Sizin dizayna uyğunlaşdırıldı) --- */}
         <Button 
           variant="outline" 
           className="w-full h-12 bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold border-none mb-4 transition-transform hover:scale-[1.02]"
