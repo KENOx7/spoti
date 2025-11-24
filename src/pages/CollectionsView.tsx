@@ -1,7 +1,6 @@
-// src/pages/CollectionsView.tsx
 import { useLanguage } from "@/context/language-context";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Play, Import } from "lucide-react";
+import { Plus, Trash2, Play, Import, RefreshCw } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { Playlist } from "@/types";
 import { useState, useEffect } from "react";
@@ -10,17 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
 import { fetchSpotifyPlaylists } from "@/lib/spotify";
-import { usePlayer } from "@/context/player-context"; // YENİ: import etdik
 
 export default function CollectionsView() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { session } = useAuth();
-  
-  // Player context-dən bunları götürürük
-  const { playTrack, setQueue } = usePlayer();
-
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -35,7 +29,7 @@ export default function CollectionsView() {
       toast({
         variant: "destructive",
         title: t("error"),
-        description: "Spotify account not connected. Please login again.",
+        description: t("noSpotifyConnection"),
       });
       return;
     }
@@ -45,54 +39,56 @@ export default function CollectionsView() {
       const spotifyPlaylists = await fetchSpotifyPlaylists(accessToken);
       
       if (spotifyPlaylists.length === 0) {
-        toast({ title: t("info"), description: "No playlists found." });
+        toast({ title: t("error"), description: t("noPlaylistsFound") });
       } else {
         const currentPlaylists = storage.getPlaylists();
-        const newPlaylists = [...currentPlaylists, ...spotifyPlaylists];
-        // Dublikatları təmizlə
-        const uniquePlaylists = newPlaylists.filter((v,i,a)=>a.findIndex(v2=>(v2.id===v.id))===i);
+        const uniqueNewPlaylists = spotifyPlaylists.filter(
+          newP => !currentPlaylists.some(currP => currP.id === newP.id)
+        );
+        const newAllPlaylists = [...currentPlaylists, ...uniqueNewPlaylists];
         
-        storage.savePlaylists(uniquePlaylists);
-        setPlaylists(uniquePlaylists);
-        toast({ title: t("success"), description: `${spotifyPlaylists.length} playlists imported.` });
+        storage.savePlaylists(newAllPlaylists);
+        setPlaylists(newAllPlaylists);
+        
+        toast({
+          title: t("success"),
+          description: `${uniqueNewPlaylists.length} ${t("importSuccess")}`,
+        });
       }
     } catch (error) {
       console.error(error);
-      toast({ variant: "destructive", title: t("error"), description: "Import failed." });
+      toast({ variant: "destructive", title: t("error"), description: t("importError") });
     } finally {
       setIsImporting(false);
     }
   };
 
-  const handleDeletePlaylist = (id: string) => {
-    const updated = playlists.filter(p => p.id !== id);
-    storage.savePlaylists(updated);
-    setPlaylists(updated);
-  };
-
-  // --- VACİB: PLAYLIST PLAY FUNKSİYASI ---
-  const handlePlayPlaylist = (e: React.MouseEvent, playlist: Playlist) => {
-    e.stopPropagation(); // Karta kliklənməsinin qarşısını al
-    if (playlist.tracks && playlist.tracks.length > 0) {
-        // 1. Queue-nu yenilə ki, next/prev işləsin
-        setQueue(playlist.tracks);
-        // 2. İlk mahnını çal
-        playTrack(playlist.tracks[0]);
-    } else {
-        toast({ description: "This playlist is empty." });
+  const handleDeletePlaylist = (playlistId: string) => {
+    try {
+      const updated = playlists.filter((p) => p.id !== playlistId);
+      storage.savePlaylists(updated);
+      setPlaylists(updated);
+      toast({ title: t("playlistDeleted"), description: t("playlistDeleted") });
+    } catch (error) {
+      toast({ title: t("error"), variant: "destructive" });
     }
   };
 
   return (
-    <div className="pb-32 px-4 animate-in fade-in">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">{t("collections")}</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleImportSpotify} disabled={isImporting}>
-            <Import className="mr-2 h-4 w-4" />
-            {isImporting ? "..." : "Import Spotify"}
+    <div className="space-y-8 pb-20">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">{t("collections")}</h1>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            variant="secondary" 
+            onClick={handleImportSpotify} 
+            disabled={isImporting}
+            className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white"
+          >
+            {isImporting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Import className="mr-2 h-4 w-4" />}
+            {isImporting ? t("importing") : t("spotifyImport")}
           </Button>
-          <Button onClick={() => navigate("/make-playlist")}>
+          <Button onClick={() => navigate("/make-playlist")} className="flex-1 sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
             {t("createPlaylist")}
           </Button>
@@ -100,47 +96,52 @@ export default function CollectionsView() {
       </div>
 
       {playlists.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        // Grid: Mobildə 3, Planşetdə 4, Desktopda 5 sütun
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-4">
           {playlists.map((playlist) => (
             <Card 
               key={playlist.id} 
-              className="group cursor-pointer hover:bg-white/5 transition-all border-white/10"
+              className="group cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden border-border/50"
               onClick={() => navigate(`/playlist/${playlist.id}`)}
             >
-              <CardHeader className="p-0 relative aspect-square">
-                 <img 
-                   src={playlist.coverUrl || "/placeholder.svg"} 
-                   alt={playlist.name} 
-                   className="w-full h-full object-cover rounded-t-lg"
-                 />
-                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    {/* Play Button */}
+              <CardHeader className="p-0">
+                <div className="aspect-square w-full relative overflow-hidden">
+                  <img 
+                    src={playlist.coverUrl || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60"} 
+                    alt={playlist.name}
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                  />
+                  
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-1 sm:gap-2 
+                                  opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
                     <Button
                       size="icon"
-                      className="rounded-full h-12 w-12 bg-primary hover:bg-primary/90 shadow-xl"
-                      onClick={(e) => handlePlayPlaylist(e, playlist)}
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/playlist/${playlist.id}`);
+                      }}
                     >
-                      <Play className="h-5 w-5 ml-0.5 fill-current" />
+                      <Play className="h-4 w-4 sm:h-5 sm:w-5 ml-0.5" />
                     </Button>
-                    
-                    {/* Delete Button */}
                     <Button
                       variant="destructive"
                       size="icon"
-                      className="rounded-full h-8 w-8"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeletePlaylist(playlist.id);
                       }}
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full shadow-lg"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
-                 </div>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="p-3">
-                <CardTitle className="truncate text-sm font-medium">{playlist.name}</CardTitle>
-                <CardDescription className="text-xs">
-                  {playlist.tracks?.length || 0} {t("tracks")}
+              <CardContent className="p-2 sm:p-4">
+                <CardTitle className="text-xs sm:text-base truncate mb-1 font-medium">{playlist.name}</CardTitle>
+                <CardDescription className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                  {playlist.tracks?.length || 0} {playlist.tracks?.length === 1 ? t("track") : t("tracks")}
                 </CardDescription>
               </CardContent>
             </Card>
@@ -149,6 +150,10 @@ export default function CollectionsView() {
       ) : (
         <div className="text-center py-20">
           <p className="text-muted-foreground mb-4">{t("emptyPlaylist")}</p>
+          <Button onClick={() => navigate("/make-playlist")}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t("createPlaylist")}
+          </Button>
         </div>
       )}
     </div>
