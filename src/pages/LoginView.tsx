@@ -51,7 +51,7 @@ export default function LoginView() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "spotify",
         options: {
-          // ✅ YENİLƏNDİ: Artıq callback səhifəsinə yönləndiririk
+          // ✅ URL-in sonuna /auth/callback əlavə olundu
           redirectTo: `${window.location.origin}/auth/callback`,
           scopes: "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read",
         },
@@ -73,7 +73,7 @@ export default function LoginView() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // ✅ YENİLƏNDİ: Google üçün də callback əlavə etdik
+          // ✅ URL-in sonuna /auth/callback əlavə olundu
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
