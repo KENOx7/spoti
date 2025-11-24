@@ -25,26 +25,27 @@ import PlaylistDetailView from "./pages/PlaylistDetailView";
 import RecentlyAddedView from "./pages/RecentlyAddedView";
 import LoginView from "./pages/LoginView";
 import SignupView from "./pages/SignupView";
-import AuthCallback from "./pages/AuthCallback"; // 🟢 Əlavə edildi
 
 const queryClient = new QueryClient();
 
-// Bu Layout yalnız daxil olmuş istifadəçilər üçündür (Player görünür)
+// Bu Layout yalnız daxil olmuş istifadəçilər üçün görünəcək
+// Player, Sidebar və MobileNav burada yerləşir
 const MainLayout = () => {
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex min-h-screen w-full bg-background text-foreground">
+      {/* Desktop Sidebar */}
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 overflow-y-auto pb-32 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          <div className="p-4 sm:p-6 md:p-8 max-w-[1400px] mx-auto w-full">
-            <Outlet />
-          </div>
-        </main>
-        <div className="fixed bottom-0 left-0 right-0 z-50 md:left-64">
-           <Player />
+
+      {/* Main Content Wrapper */}
+      <main className="flex-1 flex flex-col min-w-0 md:pl-64 transition-[padding] duration-300">
+        <div className="flex-1 overflow-y-auto pb-40 md:pb-24 px-4 pt-4 md:px-8 md:pt-8">
+          <Outlet /> {/* Səhifələr burada render olunacaq */}
         </div>
-        <MobileNav />
-      </div>
+      </main>
+
+      {/* Fixed Components */}
+      <Player />
+      <MobileNav />
     </div>
   );
 };
@@ -62,8 +63,6 @@ const App = () => (
                 {/* PUBLIC ROUTES (Player burada GÖRÜNMƏYƏCƏK) */}
                 <Route path="/login" element={<LoginView />} />
                 <Route path="/signup" element={<SignupView />} />
-                {/* 🟢 Callback Route Əlavə Edildi */}
-                <Route path="/auth/callback" element={<AuthCallback />} />
 
                 {/* PROTECTED ROUTES (Player burada GÖRÜNƏCƏK) */}
                 <Route element={
