@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { User, Chrome, Music } from "lucide-react"; // Importları yoxlayın
+import { Mail, Lock, Music, Chrome, User, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-context";
 
-// Şəkil (Sizin kodunuzdakı kimi saxlayıram)
+// Şəkil
 const backgroundImage = new URL("./Raper album cover.jpg", import.meta.url).href;
 
 export default function LoginView() {
@@ -28,14 +28,14 @@ export default function LoginView() {
     }
   }, [isAuthenticated, navigate]);
 
-  // --- SOSİAL LOGİN FUNKSİYASI ---
+  // --- SİZİN KODUNUZDAKI MƏNTİQ (LOGIC) ---
+  
   const handleSocialLogin = async (provider: 'google' | 'spotify') => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          // Bu hissə ÇOX VACİBDİR. Login bitəndən sonra bura qayıdacaq.
           redirectTo: `${window.location.origin}/`, 
         },
       });
@@ -52,7 +52,6 @@ export default function LoginView() {
     }
   };
 
-  // Email login funksiyası (Sizin köhnə kodunuz)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -64,119 +63,160 @@ export default function LoginView() {
       });
 
       if (error) throw error;
-      // Uğurlu olsa onAuthStateChange işə düşəcək və yönləndirəcək
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
         description: error.message,
       });
+    } finally {
+      // finally blokunu əlavə etdim ki, xəta olsa belə loading dayansın
       setIsLoading(false);
     }
   };
 
-  const handleGuestLogin = () => {
-    continueAsGuest();
+  const handleGuestLogin = async () => {
+    setIsLoading(true); // Loading effekti əlavə etdim
+    await continueAsGuest();
     navigate("/");
   };
 
+  // --- DİZAYN HİSSƏSİ (FAYLDAN GÖTÜRÜLDÜ) ---
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Arxa fon şəkli */}
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      
+      {/* --- ARXA FON ŞƏKLİ --- */}
       <div 
-        className="absolute inset-0 bg-cover bg-center z-0"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `url("${backgroundImage}")`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
       >
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] bg-gradient-to-b from-background/80 via-transparent to-background/90" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md p-8 bg-black/40 border border-white/10 rounded-2xl backdrop-blur-md shadow-2xl animate-in fade-in zoom-in duration-500">
+      {/* Parıltı effekti */}
+      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none z-0" />
+      
+      <div className="w-full max-w-md p-8 relative z-10 animate-in fade-in zoom-in duration-500">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Endless Flow</h1>
-          <p className="text-gray-400">{t("welcomeBack")}</p>
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-white mb-2 tracking-tight drop-shadow-lg">
+            {t("welcomeBack")}
+          </h1>
+          <p className="text-muted-foreground text-gray-300">
+            {t("enterMusicWorld")}
+          </p>
         </div>
 
-        {/* SOSİAL BUTONLAR */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Button 
-            variant="outline" 
-            className="h-12 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white"
-            onClick={() => handleSocialLogin('google')}
-            disabled={isLoading}
-          >
-            <Chrome className="mr-2 h-4 w-4" /> Google
-          </Button>
-          <Button 
-            variant="outline" 
-            className="h-12 bg-white/5 border-white/10 hover:bg-[#1DB954]/20 hover:text-[#1DB954] hover:border-[#1DB954]/50"
-            onClick={() => handleSocialLogin('spotify')}
-            disabled={isLoading}
-          >
-            <Music className="mr-2 h-4 w-4" /> Spotify
-          </Button>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-gray-200">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="hello@example.com"
-              className="h-11 bg-white/5 border-white/10 focus:ring-primary/50 text-white placeholder:text-gray-500"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl">
           
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-gray-200">{t("password")}</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              className="h-11 bg-white/5 border-white/10 focus:ring-primary/50 text-white placeholder:text-gray-500"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+          {/* --- SOCIAL LOGIN BUTTONS --- */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <Button 
+              variant="outline" 
+              className="bg-white/5 border-white/10 hover:bg-[#1DB954]/20 hover:text-[#1DB954] hover:border-[#1DB954]/50 text-white transition-all"
+              onClick={() => handleSocialLogin('spotify')}
+              disabled={isLoading}
+            >
+              <Music className="mr-2 h-4 w-4 text-[#1DB954]" />
+              Spotify
+            </Button>
+            <Button 
+              variant="outline" 
+              className="bg-white/5 border-white/10 hover:bg-white/10 hover:text-white text-white"
+              onClick={() => handleSocialLogin('google')}
+              disabled={isLoading}
+            >
+              <Chrome className="mr-2 h-4 w-4 text-red-500" />
+              Google
+            </Button>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full h-12 bg-primary hover:bg-primary/90 shadow-[0_0_20px_rgba(124,58,237,0.3)]"
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-black/50 px-2 text-gray-400 backdrop-blur-md rounded">
+                {t("orEmail")}
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-gray-200">{t("email")}</Label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="name@example.com"
+                  className="pl-10 h-12 bg-white/5 border-white/10 focus:ring-primary/50 text-white placeholder:text-gray-500"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password"className="text-gray-200">{t("password")}</Label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  className="pl-10 h-12 bg-white/5 border-white/10 focus:ring-primary/50 text-white"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-medium mt-2 bg-primary hover:bg-primary/90 shadow-[0_0_20px_rgba(124,58,237,0.3)]"
+              disabled={isLoading}
+            >
+              {isLoading ? "..." : t("signIn")}
+            </Button>
+          </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-black/50 px-2 text-gray-400 backdrop-blur-md rounded">Or</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11 bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-primary hover:border-primary/50 transition-all"
+            onClick={handleGuestLogin}
             disabled={isLoading}
           >
-            {isLoading ? "..." : t("signIn")}
+            <User className="mr-2 h-4 w-4" />
+            {t("guestContinue")}
           </Button>
-        </form>
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-white/10" />
+          <div className="mt-6 pt-4 border-t border-white/10 text-center text-sm text-gray-400">
+            {t("noAccount")}{" "}
+            <Link 
+              to="/signup" 
+              className="text-primary hover:text-primary/80 font-semibold transition-all inline-flex items-center ml-1 hover:underline"
+            >
+              {t("signUp")} <ArrowRight className="ml-1 h-3 w-3" />
+            </Link>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-black/50 px-2 text-gray-400 backdrop-blur-md rounded">Or</span>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full h-11 bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-primary hover:border-primary/50 transition-all"
-          onClick={handleGuestLogin}
-          disabled={isLoading}
-        >
-          <User className="mr-2 h-4 w-4" />
-          {t("guestContinue")}
-        </Button>
-
-        <div className="mt-6 pt-4 border-t border-white/10 text-center text-sm text-gray-400">
-          {t("noAccount")}{" "}
-          <Link to="/signup" className="text-primary hover:text-primary/80 font-semibold hover:underline transition-all">
-            {t("signUp")}
-          </Link>
         </div>
       </div>
     </div>
