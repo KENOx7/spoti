@@ -122,7 +122,7 @@ const translations: Translations = {
     haveAccount: "Artıq hesabınız var?",
     guestContinue: "Qonaq kimi davam et",
     welcomeUser: "Xoş gəldin",
-    guest: "Kəşfiyyatçı",
+    guest: "Qonaq",
     manageProfile: "Profili İdarə Et",
     security: "Təhlükəsizlik",
     updatePassword: "Şifrəni Yenilə",
